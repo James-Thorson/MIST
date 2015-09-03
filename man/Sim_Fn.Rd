@@ -1,0 +1,171 @@
+\name{Sim_Fn}
+\alias{Sim_Fn}
+%- Also NEED an '\alias' for EACH other topic documented here.
+\title{
+Simulator function
+}
+\description{
+%%  ~~ A concise (1-5 lines) description of what the function does. ~~
+}
+\usage{
+Sim_Fn(n_species = 4, n_years = 20, n_stations = 25, n_factors = 2, B_pp = NULL, L_pj = NULL, phi_p = NULL, SpatialScale = 0.1, SD_A = 0.5, SD_E = 0.2, rho = 0.8, logMeanDens = 1, RandomSeed = NA, Loc = NULL)
+}
+%- maybe also 'usage' for other objects documented here.
+\arguments{
+  \item{n_species}{
+%%     ~~Describe \code{n_species} here~~
+}
+  \item{n_years}{
+%%     ~~Describe \code{n_years} here~~
+}
+  \item{n_stations}{
+%%     ~~Describe \code{n_stations} here~~
+}
+  \item{n_factors}{
+%%     ~~Describe \code{n_factors} here~~
+}
+  \item{B_pp}{
+%%     ~~Describe \code{B_pp} here~~
+}
+  \item{L_pj}{
+%%     ~~Describe \code{L_pj} here~~
+}
+  \item{phi_p}{
+%%     ~~Describe \code{phi_p} here~~
+}
+  \item{SpatialScale}{
+%%     ~~Describe \code{SpatialScale} here~~
+}
+  \item{SD_A}{
+%%     ~~Describe \code{SD_A} here~~
+}
+  \item{SD_E}{
+%%     ~~Describe \code{SD_E} here~~
+}
+  \item{rho}{
+%%     ~~Describe \code{rho} here~~
+}
+  \item{logMeanDens}{
+%%     ~~Describe \code{logMeanDens} here~~
+}
+  \item{RandomSeed}{
+%%     ~~Describe \code{RandomSeed} here~~
+}
+  \item{Loc}{
+%%     ~~Describe \code{Loc} here~~
+}
+}
+\details{
+%%  ~~ If necessary, more details than the description above ~~
+}
+\value{
+%%  ~Describe the value returned
+%%  If it is a LIST, use
+%%  \item{comp1 }{Description of 'comp1'}
+%%  \item{comp2 }{Description of 'comp2'}
+%% ...
+}
+\references{
+%% ~put references to the literature/web site here ~
+}
+\author{
+%%  ~~who you are~~
+}
+\note{
+%%  ~~further notes~~
+}
+
+%% ~Make other sections like Warning with \section{Warning }{....} ~
+
+\seealso{
+%% ~~objects to See Also as \code{\link{help}}, ~~~
+}
+\examples{
+##---- Should be DIRECTLY executable !! ----
+##-- ==>  Define data, use random,
+##--	or do  help(data=index)  for the standard data sets.
+
+## The function is currently defined as
+function (n_species = 4, n_years = 20, n_stations = 25, n_factors = 2, 
+    B_pp = NULL, L_pj = NULL, phi_p = NULL, SpatialScale = 0.1, 
+    SD_A = 0.5, SD_E = 0.2, rho = 0.8, logMeanDens = 1, RandomSeed = NA, 
+    Loc = NULL) 
+{
+    if (!is.na(RandomSeed)) 
+        set.seed(RandomSeed)
+    require(RandomFields)
+    if (is.null(L_pj)) {
+        L_pj = matrix(rnorm(n_factors * n_species), nrow = n_species, 
+            ncol = n_factors)
+        for (i in 1:ncol(L_pj)) {
+            L_pj[seq(from = 1, to = i - 1, length = i - 1), i] = 0
+            if (L_pj[, i][which.max(abs(L_pj[, i]))] < 0) {
+                L_pj[, i] = -1 * L_pj[, i]
+            }
+        }
+    }
+    if (is.null(phi_p)) 
+        phi_p = rnorm(n_species, mean = 0, sd = 1)
+    alpha = rep(logMeanDens, n_species)
+    if (is.null(B_pp)) {
+        B_pp = matrix(rnorm(n_species * n_species, sd = 0.1), 
+            nrow = n_species, ncol = n_species)
+        diag(B_pp) = rho
+    }
+    if (is.null(Loc)) 
+        Loc = cbind(x = runif(n_stations, min = 0, max = 1), 
+            y = runif(n_stations, min = 0, max = 1))
+    model_A <- RMgauss(var = SD_A^2, scale = SpatialScale)
+    model_E <- RMgauss(var = SD_E^2, scale = SpatialScale)
+    A_sp = matrix(NA, nrow = n_stations, ncol = n_species)
+    for (p in 1:n_species) {
+        A_sp[, p] = RFsimulate(model = model_A, x = Loc[, "x"], 
+            y = Loc[, "y"])@data[, 1] + alpha[p]
+    }
+    E_stp = array(NA, dim = c(n_stations, n_years, n_species))
+    D_stj = array(NA, dim = c(n_stations, n_years, n_factors))
+    for (t in 1:n_years) {
+        for (j in 1:n_factors) D_stj[, t, j] = RFsimulate(model = model_E, 
+            x = Loc[, "x"], y = Loc[, "y"])@data[, 1]
+        E_stp[, t, ] = D_stj[, t, ] \%*\% t(L_pj)
+    }
+    d_stp = dhat_stp = array(NA, dim = c(n_stations, n_years, 
+        n_species))
+    for (s in 1:n_stations) {
+        for (p in 1:n_species) {
+            dhat_stp[s, 1, p] = phi_p[p] + A_sp[s, p]
+            d_stp[s, 1, p] = dhat_stp[s, 1, p] + E_stp[s, 1, 
+                p]
+        }
+    }
+    for (t in 2:n_years) {
+        for (s in 1:n_stations) {
+            dhat_stp[s, t, ] = A_sp[s, p] + B_pp \%*\% dhat_stp[s, 
+                t - 1, ]
+            d_stp[s, t, ] = dhat_stp[s, t, ] + E_stp[s, t, ]
+        }
+    }
+    DF = NULL
+    for (t in 1:n_years) {
+        for (s in 1:n_stations) {
+            for (p in 1:n_species) {
+                Tmp = c(sitenum = s, spp = p, year = t, catch = rpois(1, 
+                  lambda = exp(d_stp[s, p, t])), waterTmpC = 0)
+                DF = rbind(DF, Tmp)
+            }
+        }
+    }
+    DF = data.frame(DF, row.names = NULL)
+    DF[, "spp"] = factor(letters[DF[, "spp"]])
+    if (n_species > 26) 
+        stop("problem with using letters")
+    Sim_List = list(DF = DF, L_pj = L_pj, B_pp = B_pp, phi_p = phi_p, 
+        Loc = Loc, A_sp = A_sp, E_stp = E_stp, dhat_stp = dhat_stp, 
+        d_stp = d_stp)
+    return(Sim_List)
+  }
+}
+% Add one or more standard keywords, see file 'KEYWORDS' in the
+% R documentation directory.
+\keyword{ ~kwd1 }
+\keyword{ ~kwd2 }% __ONLY ONE__ keyword per line
