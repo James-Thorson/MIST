@@ -60,7 +60,7 @@ function( n_species=4, n_years=20, n_stations=25, n_factors=2, B_pp=NULL, L_pj=N
   for(t in 1:n_years){
   for(s in 1:n_stations){
   for(p in 1:n_species){
-    Tmp = c("sitenum"=s, "spp"=p, "year"=t, "catch"=rpois(1,lambda=exp(d_stp[s,p,t])), 'waterTmpC'=0 )
+    Tmp = c("sitenum"=s, "spp"=p, "year"=t, "catch"=rpois(1,lambda=exp(d_stp[s,t,p])), 'waterTmpC'=0 )
     DF = rbind(DF, Tmp)
   }}}
   DF = data.frame(DF, row.names=NULL)
