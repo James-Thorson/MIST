@@ -1,5 +1,7 @@
+#n_species=4; n_years=20; n_stations=25; n_factors=2; B_pp=NULL; ObsModel="Poisson"; L_pj=NULL; phi_p=NULL; sdlog=0.1; SpatialScale=0.1; SD_A=0.5; SD_E=0.2; rho=0.8; logMeanDens=1; RandomSeed=NA; Loc=NULL
+#n_species=Nspecies; n_years=25; n_stations=100; SpatialScale=0.4; n_factors=Nfactors; ObsModel="Lognormal"; rho=0.5
 Sim_Fn <-
-function( n_species=4, n_years=20, n_stations=25, n_factors=2, B_pp=NULL, L_pj=NULL, phi_p=NULL, SpatialScale=0.1, SD_A=0.5, SD_E=0.2, rho=0.8, logMeanDens=1, RandomSeed=NA, Loc=NULL ){
+function( n_species=4, n_years=20, n_stations=25, n_factors=2, B_pp=NULL, ObsModel="Poisson", L_pj=NULL, phi_p=NULL, sdlog=0.1, SpatialScale=0.1, SD_A=0.5, SD_E=0.2, rho=0.8, logMeanDens=1, RandomSeed=NA, Loc=NULL ){
   if( !is.na(RandomSeed) ) set.seed(RandomSeed) 
   require( RandomFields )
   
@@ -20,6 +22,8 @@ function( n_species=4, n_years=20, n_stations=25, n_factors=2, B_pp=NULL, L_pj=N
     B_pp = matrix( rnorm(n_species*n_species,sd=0.2), nrow=n_species, ncol=n_species)
     diag(B_pp) = rho
   }
+
+  if(any( Mod(eigen(B_pp)$values)>1 )) warning( "B_pp is not stationary!")
 
   # Spatial model
   if( is.null(Loc) ) Loc = cbind( "x"=runif(n_stations, min=0,max=1), "y"=runif(n_stations, min=0,max=1) )
@@ -60,7 +64,9 @@ function( n_species=4, n_years=20, n_stations=25, n_factors=2, B_pp=NULL, L_pj=N
   for(t in 1:n_years){
   for(s in 1:n_stations){
   for(p in 1:n_species){
-    Tmp = c("sitenum"=s, "spp"=p, "year"=t, "catch"=rpois(1,lambda=exp(d_stp[s,t,p])), 'waterTmpC'=0 )
+    Tmp = c("sitenum"=s, "spp"=p, "year"=t, "catch"=NA, 'waterTmpC'=0, 'lambda'=exp(d_stp[s,t,p]) )
+    if(ObsModel=="Poisson") Tmp['catch'] = rpois(1,lambda=Tmp['lambda'])
+    if(ObsModel=="Lognormal") Tmp['catch'] = rlnorm(1,meanlog=log(Tmp['lambda']),sdlog=sdlog)
     DF = rbind(DF, Tmp)
   }}}
   DF = data.frame(DF, row.names=NULL)

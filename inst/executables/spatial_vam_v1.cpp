@@ -218,7 +218,8 @@ Type objective_function<Type>::operator() ()
   for(int i=0; i<n_i; i++){
     logchat_i(i) = d_ktp(s_i(i),t_i(i),p_i(i));
     if( !isNA(c_i(i)) ){                
-      jnll -= dpois( c_i(i), exp(logchat_i(i)), true );
+      if(Options_vec(0)==0) jnll -= dpois( c_i(i), exp(logchat_i(i)), true );
+      if(Options_vec(0)==1) jnll -= dlnorm( c_i(i), exp(logchat_i(i)), true );
     }
   }
 
