@@ -3,7 +3,7 @@
 
 // 2nd power of a number
 template<class Type>
-Type square(Type x){ return pow(x,2.0); }
+Type square(Type x){ return x*x; }
 
 // Function for detecting NAs
 template<class Type>
@@ -114,12 +114,10 @@ Type objective_function<Type>::operator() ()
   PARAMETER_VECTOR(logtauA_p);        // log-inverse SD of Alpha
   PARAMETER_VECTOR(L_val);    // Values in loadings matrix
   PARAMETER_MATRIX(B_pp);   // Interaction matrix
-  PARAMETER_VECTOR(log_sigma_p);
 
   // Random effects
   PARAMETER_ARRAY(d_ktp);  // Spatial process variation
-  PARAMETER_MATRIX(A_input);  // Spatial process variation
-  PARAMETER_VECTOR(tilda_i);
+  PARAMETER_MATRIX(Ainput_kp);  // Spatial process variation
 
   // global stuff
   Type jnll = 0;
@@ -129,7 +127,7 @@ Type objective_function<Type>::operator() ()
   H(0,0) = exp(Hinput_z(0));
   H(1,0) = Hinput_z(1);
   H(0,1) = Hinput_z(1);
-  H(1,1) = (1+square(Hinput_z(1))) / exp(Hinput_z(0));
+  H(1,1) = (1+Hinput_z(1)*Hinput_z(1)) / exp(Hinput_z(0));
 
   // Assemble the loadings matrix
   matrix<Type> L_pj(n_p, n_j);
@@ -152,8 +150,7 @@ Type objective_function<Type>::operator() ()
   }}
   matrix<Type> Cov_pp(n_p, n_p);
   matrix<Type> Prec_pp(n_p, n_p);
-  Cov_pp = L_jp * L_pj;
-  //Prec_pp = atomic::matinv( Cov_pp );
+  Cov_pp = L_pj * L_jp;   //Prec_pp = atomic::matinv( Cov_pp );
   
   // Derived quantities related to GMRF
   Type Range = sqrt(8) / exp( logkappa );
@@ -167,7 +164,7 @@ Type objective_function<Type>::operator() ()
   matrix<Type> A_kp(n_k, n_p);
   for(int k=0; k<n_k; k++){
   for(int p=0; p<n_p; p++){
-    A_kp(k,p) = alpha_p(p) + A_input(k,p)/exp(logtauA_p(p));
+    A_kp(k,p) = alpha_p(p) + Ainput_kp(k,p)/exp(logtauA_p(p));
   }}
   
   // Calculate expected density given stochastic process
@@ -186,12 +183,10 @@ Type objective_function<Type>::operator() ()
   // Project forward
   for(int t=1; t<n_t; t++){
     for(int s=0; s<n_s; s++){
-      for(int p=0; p<n_p; p++) tmp1_p(p) = dhat_ktp(s,t,p);
       for(int p=0; p<n_p; p++){
-        tmp2_p(p) = ( B_pp.row(p).array() * tmp1_p.array() ).sum();
-        tmp2_p(p) += A_kp(s,p);
+        dhat_ktp(s,t,p) = A_kp(s,p);
+        for(int p1=0; p1<n_p; p1++) dhat_ktp(s,t,p) += B_pp(p,p1) * d_ktp(s,t-1,p1);
       }
-      for(int p=0; p<n_p; p++) dhat_ktp(s,t,p) = tmp2_p(p);
     }
     for(int k=n_s; k<n_k; k++){
     for(int p=0; p<n_p; p++){
@@ -207,12 +202,14 @@ Type objective_function<Type>::operator() ()
     for(int p=0; p<n_p; p++){
       Epsilon_kp(k,p) = d_ktp(k,t,p) - dhat_ktp(k,t,p);
     }}
-    jnll += SCALE(SEPARABLE(nll_gmrf_spatial, nll_mvnorm), exp(-logtauE))(Epsilon_kp); 
-    //SEPARABLE(AR1(rho_j(j)),GMRF(Q))(Epsilon_tmp);
-    //jnll += SEPARABLE(nll_gmrf_spatial, nll_mvnorm)(Epsilon_kp); 
+    jnll += SCALE(SEPARABLE(nll_mvnorm, nll_gmrf_spatial), exp(-logtauE))(Epsilon_kp); 
+    //jnll += SEPARABLE(nll_mvnorm, nll_gmrf_spatial)(Epsilon_kp); 
+    //for(int p=0; p<n_p; p++){
+      //jnll += nll_gmrf_spatial(Epsilon_kp.col(p)); 
+    //}
     // Alpha
     for(int p=0; p<n_p; p++){
-      jnll += nll_gmrf_spatial(A_input.col(p));
+      jnll += nll_gmrf_spatial(Ainput_kp.col(p));
     }
   }
 
@@ -227,6 +224,8 @@ Type objective_function<Type>::operator() ()
 
   // Spatial field summaries
   REPORT( Range );
+  REPORT( Cov_pp );
+  REPORT( B_pp );
   // Fields
   REPORT( A_kp );
   REPORT( d_ktp );

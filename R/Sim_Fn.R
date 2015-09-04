@@ -17,7 +17,7 @@ function( n_species=4, n_years=20, n_stations=25, n_factors=2, B_pp=NULL, L_pj=N
   alpha = rep(logMeanDens, n_species)
 
   if( is.null(B_pp) ){
-    B_pp = matrix( rnorm(n_species*n_species,sd=0.1), nrow=n_species, ncol=n_species)
+    B_pp = matrix( rnorm(n_species*n_species,sd=0.2), nrow=n_species, ncol=n_species)
     diag(B_pp) = rho
   }
 
@@ -51,7 +51,7 @@ function( n_species=4, n_years=20, n_stations=25, n_factors=2, B_pp=NULL, L_pj=N
   # Project forward
   for(t in 2:n_years){
   for(s in 1:n_stations){
-    dhat_stp[s,t,] = A_sp[s,p] + B_pp%*%dhat_stp[s,t-1,]
+    dhat_stp[s,t,] = A_sp[s,p] + B_pp%*%d_stp[s,t-1,]
     d_stp[s,t,] = dhat_stp[s,t,] + E_stp[s,t,]
   }}
   
