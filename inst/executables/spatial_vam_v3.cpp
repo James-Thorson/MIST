@@ -140,7 +140,7 @@ Type objective_function<Type>::operator() ()
   int Count = 0;
   for(int p=0; p<n_p; p++){
   for(int j=0; j<n_j; j++){
-    if(p>=j){
+    if(j>=p){
       L_pj(p,j) = L_val(Count);
       Count++;
     }else{
@@ -155,19 +155,22 @@ Type objective_function<Type>::operator() ()
     L_jp(j,p) = L_pj(p,j);
   }}
   matrix<Type> Cov_pp(n_p, n_p);
-  matrix<Type> Prec_pp(n_p, n_p);
-  Cov_pp = L_pj * L_jp;   //Prec_pp = atomic::matinv( Cov_pp );
+  Cov_pp = L_pj * L_jp;   
+  //matrix<Type> Prec_pp(n_p, n_p);
+  //Prec_pp = atomic::matinv( Cov_pp );
   
   // Derived quantities related to GMRF
   Type Range = sqrt(8) / exp( logkappa );
-  Type logtauE = log(1/(exp(logkappa)*sqrt(4*3.141592)));
+  Type logtauE = log(1/(exp(logkappa)*sqrt(4*pi)));
+  vector<Type> MargSigmaA_p(n_p);
+  for(p=0; p<n_p; p++) MargSigmaA_p(p) = pow(4*pi,0.5) / exp(logtauA_p(p)) / exp(logkappa);    // THESE ARE INCORRECT!!
   Eigen::SparseMatrix<Type> Q = exp(4.0*logkappa)*G0 + Type(2.0)*exp(2.0*logkappa)*G1 + G2;
   //Eigen::SparseMatrix<Type> Q = Q_spde(spde, exp(logkappa), H);
   GMRF_t<Type> nll_gmrf_spatial(Q);
   MVNORM_t<Type> nll_mvnorm(Cov_pp);
-  matrix<Type> Identity_pp(n_p, n_p);
-  Identity_pp.setIdentity();
-  MVNORM_t<Type> nll_mvnorm_identity_pp(Identity_pp);
+  //matrix<Type> Identity_pp(n_p, n_p);
+  //Identity_pp.setIdentity();
+  //MVNORM_t<Type> nll_mvnorm_identity_pp(Identity_pp);
   
   // Transform random fields
   matrix<Type> A_kp(n_k, n_p);
@@ -206,8 +209,8 @@ Type objective_function<Type>::operator() ()
   // Probability of random fields
   array<Type> Epsilon_kp(n_k, n_p);
   // Alpha
-  //if( Options_vec(1)==1 ) jnll_comp(0) += SEPARABLE(nll_mvnorm_identity_pp, nll_gmrf_spatial)(Ainput_kp);
   for(int p=0; p<n_p; p++){
+    // SCALE function --  If doing it this way, A_kp=Alpha_kp (i.e., Alpha_kp not rescaled prior to being used in the likelihood)
     //if( Options_vec(1)==1 ) jnll_comp(0) += SCALE(nll_gmrf_spatial, exp(-logtauA_p(p)))(A_kp.col(p));
     if( Options_vec(1)==1 ) jnll_comp(0) += nll_gmrf_spatial(Ainput_kp.col(p));
   }
@@ -219,11 +222,11 @@ Type objective_function<Type>::operator() ()
     }}
     jnll_comp(1) += SCALE(SEPARABLE(nll_mvnorm, nll_gmrf_spatial), exp(-logtauE))(Epsilon_kp); 
     //jnll_comp(1) += SEPARABLE(nll_mvnorm, nll_gmrf_spatial)(Epsilon_kp); 
-    for(int p=0; p<n_p; p++){
+    //for(int p=0; p<n_p; p++){
       //jnll_comp(1) += SCALE(nll_gmrf_spatial, exp(-logtauE))(Epsilon_kp.col(p).array()); 
       //jnll_comp(1) += SCALE(GMRF(Q), Type(1.0))(Epsilon_kp.col(p)); 
       //jnll_comp(1) += nll_gmrf_spatial(Epsilon_kp.col(p)); 
-    }
+    //}
   }
 
   // Probability of observations
@@ -246,12 +249,15 @@ Type objective_function<Type>::operator() ()
   REPORT( jnll );
   REPORT( jnll_comp );
   REPORT( logtauE );
+  REPORT( MargSigmaA_p );
   // Fields
   REPORT( A_kp );
   REPORT( d_ktp );
   REPORT( dhat_ktp );
   REPORT( Ainput_kp );
-  REPORT( Identity_pp );
+  REPORT( L_jp );
+  RETURN( pi );
+  //REPORT( Identity_pp );
   
   return jnll;
 }
