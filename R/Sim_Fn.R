@@ -1,19 +1,16 @@
-#n_species=4; n_years=20; n_stations=25; n_factors=2; B_pp=NULL; ObsModel="Poisson"; L_pj=NULL; phi_p=NULL; sdlog=0.1; SpatialScale=0.1; SD_A=0.5; SD_E=0.2; rho=0.8; logMeanDens=1; RandomSeed=NA; Loc=NULL
-#n_species=Nspecies; n_years=25; n_stations=100; SpatialScale=0.4; n_factors=Nfactors; ObsModel="Lognormal"; rho=0.5
+#n_species=4; n_years=20; n_stations=25; B_pp=NULL; ObsModel="Poisson"; Cov_pp=NULL; phi_p=NULL; sdlog=0.1; SpatialScale=0.1; SD_A=0.5; SD_E=0.2; corr_E=0.5; rho=0.8; logMeanDens=1; RandomSeed=NA; Loc=NULL
+#n_species=Nspecies; n_years=40; n_stations=50; SpatialScale=0.4; rho=0.5; SD_A=0.5; SD_E=0.2; corr_E=0.5; ObsModel=ObsModel
 Sim_Fn <-
-function( n_species=4, n_years=20, n_stations=25, n_factors=2, B_pp=NULL, ObsModel="Poisson", L_pj=NULL, phi_p=NULL, sdlog=0.1, SpatialScale=0.1, SD_A=0.5, SD_E=0.2, rho=0.8, logMeanDens=1, RandomSeed=NA, Loc=NULL ){
+function( n_species=4, n_years=20, n_stations=25, B_pp=NULL, ObsModel="Poisson", Cov_pp=NULL, phi_p=NULL, sdlog=0.1, SpatialScale=0.1, SD_A=0.5, SD_E=0.2, corr_E=0.5, rho=0.8, logMeanDens=1, RandomSeed=NA, Loc=NULL ){
   if( !is.na(RandomSeed) ) set.seed(RandomSeed) 
   require( RandomFields )
   
   # Parameters
-  if( is.null(L_pj) ){
-    L_pj = matrix( rnorm(n_factors*n_species), nrow=n_species, ncol=n_factors)
-    for(i in 1:ncol(L_pj)){
-      L_pj[seq(from=1,to=i-1,length=i-1),i] = 0
-      if( L_pj[,i][which.max(abs(L_pj[,i]))]<0 ){
-        L_pj[,i] = -1*L_pj[,i]
-      }
-    }
+  if( is.null(Cov_pp) ){
+    Cov_pp = matrix(corr_E,n_species,n_species)
+    diag(Cov_pp) = 1
+    Cov_pp = (rep(SD_E,n_species)%o%rep(1,n_species)) * Cov_pp * (rep(1,n_species)%o%rep(SD_E,n_species))
+    L_pj = t(chol(Cov_pp))
   }
   if( is.null(phi_p) ) phi_p = rnorm(n_species, mean=0, sd=1)
   alpha = rep(logMeanDens, n_species)
@@ -28,7 +25,7 @@ function( n_species=4, n_years=20, n_stations=25, n_factors=2, B_pp=NULL, ObsMod
   # Spatial model
   if( is.null(Loc) ) Loc = cbind( "x"=runif(n_stations, min=0,max=1), "y"=runif(n_stations, min=0,max=1) )
   model_A <- RMgauss(var=SD_A^2, scale=SpatialScale)
-  model_E <- RMgauss(var=SD_E^2, scale=SpatialScale)
+  model_E <- RMgauss(var=1, scale=SpatialScale)     # Unit variance, so variance enters via Cov_pp (I confirmed that var input to RMgauss is the marginal variance)
 
   # Simulate Alpha
   A_sp = matrix(NA, nrow=n_stations, ncol=n_species)
@@ -37,10 +34,10 @@ function( n_species=4, n_years=20, n_stations=25, n_factors=2, B_pp=NULL, ObsMod
   }
   
   # Simulate Epsilon
+  D_stj = array(NA, dim=c(n_stations,n_years,n_species))
   E_stp = array(NA, dim=c(n_stations,n_years,n_species))
-  D_stj = array(NA, dim=c(n_stations,n_years,n_factors))
   for(t in 1:n_years){
-    for(j in 1:n_factors) D_stj[,t,j] = RFsimulate(model=model_E, x=Loc[,'x'], y=Loc[,'y'])@data[,1]
+    for(j in 1:n_species) D_stj[,t,j] = RFsimulate(model=model_E, x=Loc[,'x'], y=Loc[,'y'])@data[,1]
     E_stp[,t,] = D_stj[,t,] %*% t(L_pj)
   }
 
@@ -74,6 +71,6 @@ function( n_species=4, n_years=20, n_stations=25, n_factors=2, B_pp=NULL, ObsMod
   if( n_species>26 ) stop( "problem with using letters")
 
   # Return stuff
-  Sim_List = list("DF"=DF, "L_pj"=L_pj, "B_pp"=B_pp, "phi_p"=phi_p, "Loc"=Loc, "A_sp"=A_sp, "E_stp"=E_stp, "dhat_stp"=dhat_stp, "d_stp"=d_stp)
+  Sim_List = list("DF"=DF, "L_pj"=L_pj, "Cov_pp"=Cov_pp, "B_pp"=B_pp, "phi_p"=phi_p, "Loc"=Loc, "A_sp"=A_sp, "D_stj"=D_stj, "E_stp"=E_stp, "dhat_stp"=dhat_stp, "d_stp"=d_stp)
   return(Sim_List)
 }

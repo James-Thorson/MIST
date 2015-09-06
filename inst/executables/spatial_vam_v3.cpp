@@ -135,12 +135,12 @@ Type objective_function<Type>::operator() ()
   H(0,1) = Hinput_z(1);
   H(1,1) = (1+Hinput_z(1)*Hinput_z(1)) / exp(Hinput_z(0));
 
-  // Assemble the loadings matrix
+  // Assemble the loadings matrix (lower-triangular, loop through rows then columns)
   matrix<Type> L_pj(n_p, n_j);
   int Count = 0;
-  for(int p=0; p<n_p; p++){
   for(int j=0; j<n_j; j++){
-    if(j>=p){
+  for(int p=0; p<n_p; p++){
+    if(j<=p){
       L_pj(p,j) = L_val(Count);
       Count++;
     }else{
@@ -150,22 +150,34 @@ Type objective_function<Type>::operator() ()
   
   // Calculate the precision matrix among species
   matrix<Type> L_jp(n_j, n_p);
-  for(int p=0; p<n_p; p++){
-  for(int j=0; j<n_j; j++){
-    L_jp(j,p) = L_pj(p,j);
-  }}
-  matrix<Type> Cov_pp(n_p, n_p);
-  Cov_pp = L_pj * L_jp;   
-  //matrix<Type> Prec_pp(n_p, n_p);
+  L_jp = L_pj.transpose();
+  //for(int p=0; p<n_p; p++){
+  //for(int j=0; j<n_j; j++){
+  //  L_jp(j,p) = L_pj(p,j);
+  //}}
+  matrix<Type> Cov_pp = L_pj * L_jp;   //(n_p, n_p)
+  
+  // Pseudoinverse
+  // Could be useful to deal with low-rank Cov_pp by replacing nll_mvnorm(Cov_pp) with nll_mvnorm(Identity_pp)
+  // d_ktp(k,t,)-dhat_ktp(k,t,) has rank = n_p 
+  matrix<Type> Prec_pp(n_p, n_p);
+  // Attempt #2 -- doesn't work because A isn't invertable
   //Prec_pp = atomic::matinv( Cov_pp );
+  // Attempt #1 -- doesn't work because A isn't full column-rank
+  // pseudoinverse(A) = solve(t(A)%*%A) %*% t(A), where transpose is dropped because A is symmetric
+  Prec_pp = Cov_pp * Cov_pp;
+  Prec_pp = atomic::matinv( Prec_pp );
+  Prec_pp = Prec_pp * Cov_pp; 
+  // Attempt #2
+  //JacobiSVD<MatrixXf> svd(Cov_pp, ComputeThinU | ComputeThinV);
   
   // Derived quantities related to GMRF
   Type Range = sqrt(8) / exp( logkappa );
-  Type logtauE = log(1/(exp(logkappa)*sqrt(4*pi)));
+  Type logtauE = log(1/(exp(logkappa)*sqrt(4*M_PI)));
   vector<Type> MargSigmaA_p(n_p);
-  for(p=0; p<n_p; p++) MargSigmaA_p(p) = pow(4*pi,0.5) / exp(logtauA_p(p)) / exp(logkappa);    // THESE ARE INCORRECT!!
-  Eigen::SparseMatrix<Type> Q = exp(4.0*logkappa)*G0 + Type(2.0)*exp(2.0*logkappa)*G1 + G2;
-  //Eigen::SparseMatrix<Type> Q = Q_spde(spde, exp(logkappa), H);
+  for(int p=0; p<n_p; p++) MargSigmaA_p(p) = pow(4*M_PI,0.5) / exp(logtauA_p(p)) / exp(logkappa);    
+  //Eigen::SparseMatrix<Type> Q = exp(4.0*logkappa)*G0 + Type(2.0)*exp(2.0*logkappa)*G1 + G2;
+  Eigen::SparseMatrix<Type> Q = Q_spde(spde, exp(logkappa), H);
   GMRF_t<Type> nll_gmrf_spatial(Q);
   MVNORM_t<Type> nll_mvnorm(Cov_pp);
   //matrix<Type> Identity_pp(n_p, n_p);
@@ -188,10 +200,6 @@ Type objective_function<Type>::operator() ()
   for(int p=0; p<n_p; p++){
     dhat_ktp(k,0,p) = phi_p(p) + alpha_p(p) + A_kp(k,p);
   }}
-  //for(int k=n_s; k<n_k; k++){
-  //for(int p=0; p<n_p; p++){
-  //  dhat_ktp(k,0,p) = 0.0;
-  //}}
   // Project forward
   for(int t=1; t<n_t; t++){
     for(int k=0; k<n_k; k++){
@@ -200,10 +208,6 @@ Type objective_function<Type>::operator() ()
         for(int p1=0; p1<n_p; p1++) dhat_ktp(k,t,p) += B_pp(p,p1) * d_ktp(k,t-1,p1);
       }
     }
-    //for(int k=n_s; k<n_k; k++){
-    //for(int p=0; p<n_p; p++){
-    //  dhat_ktp(k,t,p) = 0.0;
-    //}}
   }
   
   // Probability of random fields
@@ -245,19 +249,21 @@ Type objective_function<Type>::operator() ()
   // Spatial field summaries
   REPORT( Range );
   REPORT( Cov_pp );
+  REPORT( Prec_pp );
   REPORT( B_pp );
   REPORT( jnll );
   REPORT( jnll_comp );
   REPORT( logtauE );
   REPORT( MargSigmaA_p );
+  REPORT( L_pj );
   // Fields
   REPORT( A_kp );
   REPORT( d_ktp );
   REPORT( dhat_ktp );
   REPORT( Ainput_kp );
+  // Sanity checks
   REPORT( L_jp );
-  RETURN( pi );
-  //REPORT( Identity_pp );
+  REPORT( M_PI );
   
   return jnll;
 }
