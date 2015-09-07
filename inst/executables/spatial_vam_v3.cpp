@@ -149,25 +149,27 @@ Type objective_function<Type>::operator() ()
   }}
   
   // Calculate the precision matrix among species
+  matrix<Type> Identity_pp(n_p, n_p);
+  Identity_pp.setIdentity();
   matrix<Type> L_jp(n_j, n_p);
   L_jp = L_pj.transpose();
   //for(int p=0; p<n_p; p++){
   //for(int j=0; j<n_j; j++){
   //  L_jp(j,p) = L_pj(p,j);
   //}}
-  matrix<Type> Cov_pp = L_pj * L_jp;   //(n_p, n_p)
+  matrix<Type> Cov_pp = L_pj*L_jp + Type(0.000001)*Identity_pp;  // additive constant to make Cov_pp invertible
   
   // Pseudoinverse
   // Could be useful to deal with low-rank Cov_pp by replacing nll_mvnorm(Cov_pp) with nll_mvnorm(Identity_pp)
   // d_ktp(k,t,)-dhat_ktp(k,t,) has rank = n_p 
-  matrix<Type> Prec_pp(n_p, n_p);
+  //matrix<Type> Prec_pp(n_p, n_p);
   // Attempt #2 -- doesn't work because A isn't invertable
   //Prec_pp = atomic::matinv( Cov_pp );
   // Attempt #1 -- doesn't work because A isn't full column-rank
   // pseudoinverse(A) = solve(t(A)%*%A) %*% t(A), where transpose is dropped because A is symmetric
-  Prec_pp = Cov_pp * Cov_pp;
-  Prec_pp = atomic::matinv( Prec_pp );
-  Prec_pp = Prec_pp * Cov_pp; 
+  //Prec_pp = Cov_pp * Cov_pp;
+  //Prec_pp = atomic::matinv( Prec_pp );
+  //Prec_pp = Prec_pp * Cov_pp; 
   // Attempt #2
   //JacobiSVD<MatrixXf> svd(Cov_pp, ComputeThinU | ComputeThinV);
   
@@ -180,8 +182,6 @@ Type objective_function<Type>::operator() ()
   Eigen::SparseMatrix<Type> Q = Q_spde(spde, exp(logkappa), H);
   GMRF_t<Type> nll_gmrf_spatial(Q);
   MVNORM_t<Type> nll_mvnorm(Cov_pp);
-  //matrix<Type> Identity_pp(n_p, n_p);
-  //Identity_pp.setIdentity();
   //MVNORM_t<Type> nll_mvnorm_identity_pp(Identity_pp);
   
   // Transform random fields
@@ -249,7 +249,7 @@ Type objective_function<Type>::operator() ()
   // Spatial field summaries
   REPORT( Range );
   REPORT( Cov_pp );
-  REPORT( Prec_pp );
+  //REPORT( Prec_pp );
   REPORT( B_pp );
   REPORT( jnll );
   REPORT( jnll_comp );
