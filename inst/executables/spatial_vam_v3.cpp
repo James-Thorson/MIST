@@ -188,26 +188,33 @@ Type objective_function<Type>::operator() ()
   matrix<Type> A_kp(n_k, n_p);
   for(int k=0; k<n_k; k++){
   for(int p=0; p<n_p; p++){
-    A_kp(k,p) = Ainput_kp(k,p) / exp(logtauA_p(p));
+    A_kp(k,p) = Ainput_kp(k,p)/exp(logtauA_p(p)) + alpha_p(p);
   }}
   
-  // Calculate expected density given stochastic process
+  // Calculate mean of stationary distribution
+  matrix<Type> TempMat_pp(n_p, n_p);
+  matrix<Type> dinf_kp(n_k, n_p);
+  TempMat_pp.setIdentity();
+  TempMat_pp = TempMat_pp - B_pp;
+  TempMat_pp = atomic::matinv( TempMat_pp );
+  dinf_kp = A_kp * TempMat_pp.transpose();
+  
+  // Calculate predicted density given stochastic process
   vector<Type> tmp1_p(n_p);
   vector<Type> tmp2_p(n_p);
   array<Type> dhat_ktp(n_k, n_t, n_p);
   // First year
   for(int k=0; k<n_k; k++){
   for(int p=0; p<n_p; p++){
-    dhat_ktp(k,0,p) = phi_p(p) + alpha_p(p) + A_kp(k,p);
+    dhat_ktp(k,0,p) = phi_p(p) + dinf_kp(k,p);
   }}
   // Project forward
   for(int t=1; t<n_t; t++){
     for(int k=0; k<n_k; k++){
-      for(int p=0; p<n_p; p++){
-        dhat_ktp(k,t,p) = alpha_p(p) + A_kp(k,p);
-        for(int p1=0; p1<n_p; p1++) dhat_ktp(k,t,p) += B_pp(p,p1) * d_ktp(k,t-1,p1);
-      }
-    }
+    for(int p=0; p<n_p; p++){
+      dhat_ktp(k,t,p) = A_kp(k,p);
+      for(int p1=0; p1<n_p; p1++) dhat_ktp(k,t,p) += B_pp(p,p1) * d_ktp(k,t-1,p1);
+    }}
   }
   
   // Probability of random fields
@@ -225,12 +232,6 @@ Type objective_function<Type>::operator() ()
       Epsilon_kp(k,p) = d_ktp(k,t,p) - dhat_ktp(k,t,p);
     }}
     jnll_comp(1) += SCALE(SEPARABLE(nll_mvnorm, nll_gmrf_spatial), exp(-logtauE))(Epsilon_kp); 
-    //jnll_comp(1) += SEPARABLE(nll_mvnorm, nll_gmrf_spatial)(Epsilon_kp); 
-    //for(int p=0; p<n_p; p++){
-      //jnll_comp(1) += SCALE(nll_gmrf_spatial, exp(-logtauE))(Epsilon_kp.col(p).array()); 
-      //jnll_comp(1) += SCALE(GMRF(Q), Type(1.0))(Epsilon_kp.col(p)); 
-      //jnll_comp(1) += nll_gmrf_spatial(Epsilon_kp.col(p)); 
-    //}
   }
 
   // Probability of observations
@@ -246,17 +247,59 @@ Type objective_function<Type>::operator() ()
   // Combine NLL
   jnll = jnll_comp.sum();
 
+  // Derived quantities -- Stationary variance
+  int n2_p = n_p*n_p;
+  matrix<Type> Kronecker_p2p2(n2_p,n2_p);
+  Kronecker_p2p2 = kronecker( B_pp, B_pp );
+  matrix<Type> InvDiff_p2p2(n2_p, n2_p);
+  InvDiff_p2p2.setIdentity();
+  InvDiff_p2p2 = InvDiff_p2p2 - Kronecker_p2p2;
+  InvDiff_p2p2 = atomic::matinv( InvDiff_p2p2 );
+  matrix<Type> Vinf_pp(n_p, n_p);
+  Vinf_pp.setZero();
+  for(int i=0; i<n_p; i++){
+  for(int j=0; j<n_p; j++){
+    int k = i + j*n_p;
+    for(int i2=0; i2<n_p; i2++){
+    for(int j2=0; j2<n_p; j2++){
+      int k2 = i2 + j2*n_p;
+      Vinf_pp(i,j) += InvDiff_p2p2(k,k2) * Cov_pp(i2,j2);
+    }}
+  }}
+  REPORT( InvDiff_p2p2 );
+  REPORT( Vinf_pp );
+  REPORT( Kronecker_p2p2 );
+  
+  // Derived quantities -- reactivity = -trace(Cov_pp) / trace(Vinf_pp)
+  Type numerator = 0;
+  for(int p=0; p<n_p; p++) numerator += Cov_pp(p,p);
+  Type denominator = 0;
+  for(int p=0; p<n_p; p++) denominator += Vinf_pp(p,p);
+  Type Reactivity = -1 * numerator / denominator;
+  REPORT( Reactivity );
+  
+  // Derived quantities -- geometric average proportion of stationary variance caused by interactions
+  Type MeanPropVar = atomic::logdet(B_pp);
+  MeanPropVar = exp( 2.0/n_p * MeanPropVar );
+  REPORT( MeanPropVar );
+  
+  // Parameters
+  REPORT( alpha_p );
+  REPORT( phi_p );
+  REPORT( logkappa );
+  REPORT( Hinput_z );
   // Spatial field summaries
   REPORT( Range );
   REPORT( Cov_pp );
-  //REPORT( Prec_pp );
   REPORT( B_pp );
   REPORT( jnll );
   REPORT( jnll_comp );
   REPORT( logtauE );
+  REPORT( logtauA_p );
   REPORT( MargSigmaA_p );
   REPORT( L_pj );
   // Fields
+  REPORT( dinf_kp );
   REPORT( A_kp );
   REPORT( d_ktp );
   REPORT( dhat_ktp );
@@ -264,6 +307,8 @@ Type objective_function<Type>::operator() ()
   // Sanity checks
   REPORT( L_jp );
   REPORT( M_PI );
+  REPORT( logchat_i );
+  // Derived summaries
   
   return jnll;
 }
