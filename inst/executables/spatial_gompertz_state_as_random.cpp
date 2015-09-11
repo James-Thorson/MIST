@@ -1,6 +1,37 @@
 // Space time 
 #include <TMB.hpp>
 
+// function for logistic transform
+template<class Type>
+Type plogis(Type x){
+  return 1.0 / (1.0 + exp(-x));
+}
+
+// dlognorm
+template<class Type>
+Type dlognorm(Type x, Type meanlog, Type sdlog, int give_log=false){
+  Type Return;
+  if(give_log==false) Return = dnorm( log(x), meanlog, sdlog, false) / x;
+  if(give_log==true) Return = dnorm( log(x), meanlog, sdlog, true) - log(x);
+  return Return;
+}
+
+// dzinflognorm
+template<class Type>
+Type dzinflognorm(Type x, Type meanlog, Type encounter_prob, Type log_notencounter_prob, Type sdlog, int give_log=false){
+  Type Return;
+  if(x==0){
+    if(give_log==false) Return = 1.0 - encounter_prob;
+    if(give_log==true){
+      if( isNA(log_notencounter_prob) ) Return = log(1.0 - encounter_prob);
+      if( !isNA(log_notencounter_prob) ) Return = log_notencounter_prob;
+    }
+  }else{
+    if(give_log==false) Return = encounter_prob * dlognorm( x, meanlog, sdlog, false );
+    if(give_log==true) Return = log(encounter_prob) + dlognorm( x, meanlog, sdlog, true );
+  } 
+  return Return;
+}
 
 template<class Type>
 Type objective_function<Type>::operator() ()
@@ -9,6 +40,8 @@ Type objective_function<Type>::operator() ()
   DATA_INTEGER(n_data);         // Total number of observations
   DATA_VECTOR(Y);       	// Count data
   DATA_FACTOR(NAind);		// 1 = Y is NA, 0 = is not NA
+  DATA_FACTOR(s_i);		// 1 = Y is NA, 0 = is not NA
+  DATA_FACTOR(t_i);		// 1 = Y is NA, 0 = is not NA
   DATA_INTEGER(n_knots);
   DATA_INTEGER(n_stations)	// Number of stations 
   DATA_FACTOR(meshidxloc);	// Pointers into random effects vector x
@@ -28,6 +61,7 @@ Type objective_function<Type>::operator() ()
   PARAMETER(log_tau_O);      // log-inverse SD of Omega
   PARAMETER(log_kappa);      // Controls range of spatial variation
   PARAMETER(rho);             // Autocorrelation (i.e. density dependence)
+  PARAMETER_VECTOR(logsigma_z);
 
   // Random effects
   PARAMETER_ARRAY(log_Dji);  // Spatial process variation
@@ -62,7 +96,8 @@ Type objective_function<Type>::operator() ()
   for(int j=0; j<n_knots; j++){
     //Omega(j) = Omega_input(j) * exp(-log_tau_O);
     Omega(j) = Omega_input(j);
-    Equil(j) = ( eta(ii) + Omega(j) ) / (1-rho);
+    //Equil(j) = ( eta(ii) + Omega(j) ) / (1-rho);
+    Equil(j) = ( eta(ii) + Omega(j) );
     ii++;
   }
   
@@ -97,16 +132,11 @@ Type objective_function<Type>::operator() ()
   }
   
   // Likelihood contribution from observations
-  mean_abundance.setZero();
-  ii = 0;
-  for (int i=0;i<n_years;i++){
-  for (int j=0;j<n_stations;j++){ 
-    mean_abundance(i) += exp( log_Dji(j,i) ) / n_stations;      
-    if( !NAind(ii) ){                
-      jnll_comp(2) -= dpois( Y(ii), exp( log_Dji(meshidxloc(j),i) ), true );
+  for (int i=0; i<Y.size(); i++){
+    if( !NAind(i) ){                
+      jnll_comp(2) -= dpois( Y(i), exp( log_Dji(s_i(i),t_i(i)) ), true );
     }
-    ii++;
-  }}
+  }
   jnll = jnll_comp.sum();
 
   // Diagnostics
@@ -124,9 +154,6 @@ Type objective_function<Type>::operator() ()
   REPORT( log_Dji_hat );
   REPORT( Omega );
   REPORT( Equil );
-  // Total abundance
-  ADREPORT( log(mean_abundance) ); // standard errors in log-space
-  ADREPORT( mean_abundance );      // standard errors in nominal-space
   
   return jnll;
 }

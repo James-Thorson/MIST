@@ -1,6 +1,14 @@
 // Space time 
 #include <TMB.hpp>
 
+// trace of a matrix
+template<class Type>
+Type trace( matrix<Type> mat ){
+  Type Return = 0;
+  for(int i=0; i<mat.col(0).size(); i++) Return += mat(i,i); 
+  return Return;
+}
+
 // 2nd power of a number
 template<class Type>
 Type square(Type x){ return x*x; }
@@ -88,7 +96,10 @@ Type objective_function<Type>::operator() ()
   // Settings
   DATA_FACTOR( Options_vec );
   // Slot 0 -- distribution of data
-
+  // Slot 1 -- include spatial variation in alpha
+  // Slot 2 -- option for diagonal covariance (i.e., independence among species)
+  // Slot 3 -- equilibrium distribution; 0=start from stationary mean; 1=start from variation but not density dependence
+  
   // Indices
   DATA_INTEGER(n_i);       // Total number of observations (i)
   DATA_INTEGER(n_s);	   // Number of stations (s)
@@ -135,43 +146,34 @@ Type objective_function<Type>::operator() ()
   H(0,1) = Hinput_z(1);
   H(1,1) = (1+Hinput_z(1)*Hinput_z(1)) / exp(Hinput_z(0));
 
-  // Assemble the loadings matrix (lower-triangular, loop through rows then columns)
+  // Covariance via trimmed Cholesky
   matrix<Type> L_pj(n_p, n_j);
-  int Count = 0;
-  for(int j=0; j<n_j; j++){
-  for(int p=0; p<n_p; p++){
-    if(j<=p){
-      L_pj(p,j) = L_val(Count);
-      Count++;
-    }else{
-      L_pj(p,j) = 0.0;
-    }
-  }}
-  
-  // Calculate the precision matrix among species
+  matrix<Type> L_jp(n_j, n_p);
+  L_pj.setZero();
   matrix<Type> Identity_pp(n_p, n_p);
   Identity_pp.setIdentity();
-  matrix<Type> L_jp(n_j, n_p);
-  L_jp = L_pj.transpose();
-  //for(int p=0; p<n_p; p++){
-  //for(int j=0; j<n_j; j++){
-  //  L_jp(j,p) = L_pj(p,j);
-  //}}
-  matrix<Type> Cov_pp = L_pj*L_jp + Type(0.000001)*Identity_pp;  // additive constant to make Cov_pp invertible
-  
-  // Pseudoinverse
-  // Could be useful to deal with low-rank Cov_pp by replacing nll_mvnorm(Cov_pp) with nll_mvnorm(Identity_pp)
-  // d_ktp(k,t,)-dhat_ktp(k,t,) has rank = n_p 
-  //matrix<Type> Prec_pp(n_p, n_p);
-  // Attempt #2 -- doesn't work because A isn't invertable
-  //Prec_pp = atomic::matinv( Cov_pp );
-  // Attempt #1 -- doesn't work because A isn't full column-rank
-  // pseudoinverse(A) = solve(t(A)%*%A) %*% t(A), where transpose is dropped because A is symmetric
-  //Prec_pp = Cov_pp * Cov_pp;
-  //Prec_pp = atomic::matinv( Prec_pp );
-  //Prec_pp = Prec_pp * Cov_pp; 
-  // Attempt #2
-  //JacobiSVD<MatrixXf> svd(Cov_pp, ComputeThinU | ComputeThinV);
+  matrix<Type> Cov_pp(n_p, n_p);
+  Cov_pp.setZero();
+  int Count = 0;
+  if( Options_vec(2)==0 ){
+    // Assemble the loadings matrix (lower-triangular, loop through rows then columns)
+    for(int j=0; j<n_j; j++){
+    for(int p=0; p<n_p; p++){
+      if(j<=p){
+        L_pj(p,j) = L_val(Count);
+        Count++;
+      }
+    }}
+    // Calculate the covariance
+    L_jp = L_pj.transpose();
+    Cov_pp = L_pj*L_jp + Type(0.000001)*Identity_pp;  // additive constant to make Cov_pp invertible
+  }
+  // Diagonal covariance 
+  if( Options_vec(2)==1 ){
+    for(int p=0; p<n_p; p++){
+      Cov_pp(p,p) = exp( L_val(p) );
+    }
+  }
   
   // Derived quantities related to GMRF
   Type Range = sqrt(8) / exp( logkappa );
@@ -182,7 +184,6 @@ Type objective_function<Type>::operator() ()
   Eigen::SparseMatrix<Type> Q = Q_spde(spde, exp(logkappa), H);
   GMRF_t<Type> nll_gmrf_spatial(Q);
   MVNORM_t<Type> nll_mvnorm(Cov_pp);
-  //MVNORM_t<Type> nll_mvnorm_identity_pp(Identity_pp);
   
   // Transform random fields
   matrix<Type> A_kp(n_k, n_p);
@@ -206,7 +207,8 @@ Type objective_function<Type>::operator() ()
   // First year
   for(int k=0; k<n_k; k++){
   for(int p=0; p<n_p; p++){
-    dhat_ktp(k,0,p) = phi_p(p) + dinf_kp(k,p);
+    if(Options_vec(3)==0) dhat_ktp(k,0,p) = phi_p(p) + dinf_kp(k,p);
+    if(Options_vec(3)==1) dhat_ktp(k,0,p) = phi_p(p) + A_kp(k,p);
   }}
   // Project forward
   for(int t=1; t<n_t; t++){
@@ -278,11 +280,12 @@ Type objective_function<Type>::operator() ()
   REPORT( Kronecker_p2p2 );
   
   // Derived quantities -- reactivity = -trace(Cov_pp) / trace(Vinf_pp)
-  Type numerator = 0;
-  for(int p=0; p<n_p; p++) numerator += Cov_pp(p,p);
-  Type denominator = 0;
-  for(int p=0; p<n_p; p++) denominator += Vinf_pp(p,p);
-  Type Reactivity = -1 * numerator / denominator;
+  //Type numerator = 0;
+  //for(int p=0; p<n_p; p++) numerator += Cov_pp(p,p);
+  //Type denominator = 0;
+  //for(int p=0; p<n_p; p++) denominator += Vinf_pp(p,p);
+  //Type Reactivity = -1 * numerator / denominator;
+  Type Reactivity = -1 * trace(Cov_pp) / trace(Vinf_pp);
   REPORT( Reactivity );
   
   // Derived quantities -- geometric average proportion of stationary variance caused by interactions
@@ -295,6 +298,7 @@ Type objective_function<Type>::operator() ()
   REPORT( phi_p );
   REPORT( logkappa );
   REPORT( Hinput_z );
+  REPORT( logsigma_pz );
   // Spatial field summaries
   REPORT( Range );
   REPORT( Cov_pp );
