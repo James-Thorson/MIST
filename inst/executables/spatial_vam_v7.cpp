@@ -246,31 +246,34 @@ Type objective_function<Type>::operator() ()
 
   // Probability of observations
   vector<Type> logchat_i(n_i);
+  vector<Type> jnll_i(n_i);
+  jnll_i.setZero();
   Type encounterprob;
   Type log_notencounterprob;  
   for(int i=0; i<n_i; i++){
     logchat_i(i) = d_ktp(s_i(i),t_i(i),p_i(i));
     if( !isNA(c_i(i)) ){                
-      if( ObsModel_p(p_i(i))==0 ) jnll_comp(2) -= dpois( c_i(i), exp(logchat_i(i)), true );
-      if( ObsModel_p(p_i(i))==1 ) jnll_comp(2) -= dlognorm( c_i(i), logchat_i(i), exp(logsigma_pz(p_i(i),0)), true );
+      if( ObsModel_p(p_i(i))==0 ) jnll_i(i) = -1 * dpois( c_i(i), exp(logchat_i(i)), true );
+      if( ObsModel_p(p_i(i))==1 ) jnll_i(i) = -1 * dlognorm( c_i(i), logchat_i(i), exp(logsigma_pz(p_i(i),0)), true );
       if( ObsModel_p(p_i(i))==2 ){
         encounterprob = ( 1.0 - exp(-1 * exp(logchat_i(i)) * exp(logsigma_pz(p_i(i),1))) );
         log_notencounterprob = -1 * exp(logchat_i(i)) * exp(logsigma_pz(p_i(i),1));
-        jnll_comp(2) -= dzinflognorm( c_i(i), logchat_i(i)-log(encounterprob), encounterprob, log_notencounterprob, exp(logsigma_pz(p_i(i),0)), true);
+        jnll_i(i) = -1 * dzinflognorm( c_i(i), logchat_i(i)-log(encounterprob), encounterprob, log_notencounterprob, exp(logsigma_pz(p_i(i),0)), true);
       }
-      if( ObsModel_p(p_i(i))==3 ) jnll_comp(2) -= dpois( c_i(i), exp(logchat_i(i)+delta_i(i)), true );
-      if( ObsModel_p(p_i(i))==4 ) jnll_comp(2) -= dnorm( c_i(i), logchat_i(i), exp(logsigma_pz(p_i(i),0)), true );
+      if( ObsModel_p(p_i(i))==3 ) jnll_i(i) = -1 * dpois( c_i(i), exp(logchat_i(i)+delta_i(i)), true );
+      if( ObsModel_p(p_i(i))==4 ) jnll_i(i) = -1 * dnorm( c_i(i), logchat_i(i), exp(logsigma_pz(p_i(i),0)), true );
     }
   }
 
   // Probability of overdispersion
   if( Options_vec(0)==3 ){
     for(int i=0; i<n_i; i++){    
-      jnll_comp(2) -= dnorm( delta_i(i), Type(0.0), exp(logsigma_pz(p_i(i),0)), true);
+      jnll_i(i) -= dnorm( delta_i(i), Type(0.0), exp(logsigma_pz(p_i(i),0)), true);
     }
   }
 
   // Combine NLL
+  jnll_comp(2) = jnll_i.sum();
   jnll = jnll_comp.sum();
 
   // Derived quantities -- Stationary variance
@@ -359,8 +362,6 @@ Type objective_function<Type>::operator() ()
   REPORT( Range );
   REPORT( Cov_pp );
   REPORT( B_pp );
-  REPORT( jnll );
-  REPORT( jnll_comp );
   REPORT( logtauE );
   REPORT( logtauA_p );
   REPORT( MargSigmaA_p );
@@ -376,6 +377,10 @@ Type objective_function<Type>::operator() ()
   REPORT( M_PI );
   REPORT( logchat_i );
   // Derived summaries
-  
+  // Objective function components
+  REPORT( jnll );
+  REPORT( jnll_comp );
+  REPORT( jnll_i );
+
   return jnll;
 }
