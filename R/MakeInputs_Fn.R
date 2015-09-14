@@ -79,7 +79,7 @@ MakeInputs_Fn = function( Version, options_vec, obsmodel_p=NULL, loc_x, a_x, dat
     # Random
     # Treating alpha_p, phi_p and B_pp as random (in REML) results in very slow inner optimization!  (100s of steps)
     Random = c( "Ainput_kp", "d_ktp" )
-    if( Version%in%c("spatial_vam_v5")) Random = c(Random, "delta_i")
+    if( Version%in%c("spatial_vam_v7","spatial_vam_v6","spatial_vam_v5")) Random = c(Random, "delta_i")
     if(use_REML==TRUE) Random = c(Random, "alpha_p", "phi_p")  # , "B_pp"
 
     # Map
