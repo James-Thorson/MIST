@@ -201,7 +201,7 @@ Type objective_function<Type>::operator() ()
   TempMat_pp.setIdentity();
   TempMat_pp = TempMat_pp - B_pp;
   TempMat_pp = atomic::matinv( TempMat_pp );
-  dinf_kp = A_kp * TempMat_pp.transpose();
+  dinf_kp = A_kp * TempMat_pp.transpose();   // saves a transpose relative to t(Temp_pp * t(A_kp))
   
   // Calculate predicted density given stochastic process
   vector<Type> tmp1_p(n_p);
