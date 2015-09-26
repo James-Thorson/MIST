@@ -369,6 +369,8 @@ Type objective_function<Type>::operator() ()
   REPORT( Range );
   REPORT( Cov_pp );
   REPORT( B_pp );
+  REPORT( Alpha_pr );
+  REPORT( Beta_pr );
   REPORT( logtauE );
   REPORT( logtauA_p );
   REPORT( MargSigmaA_p );
@@ -388,6 +390,9 @@ Type objective_function<Type>::operator() ()
   REPORT( jnll );
   REPORT( jnll_comp );
   REPORT( jnll_i );
+
+  // Standard errors for derived quantities
+  ADREPORT( B_pp );
 
   return jnll;
 }

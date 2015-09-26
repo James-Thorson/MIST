@@ -108,6 +108,12 @@ MakeInputs_Fn = function( Version, options_vec, obsmodel_p=NULL, loc_x, a_x, dat
       }
       if( Data$ObsModel_p[p]==2 ){
         if( Version%in%c("spatial_vam_v8","spatial_vam_v7","spatial_vam_v6","spatial_vam_v5") ) Map[["delta_i"]][which((Data$p_i+1)==p)] = rep(NA,sum((Data$p_i+1)==p))
+        # Check number of zeros
+        NumZero = tapply( Data$c_i, INDEX=Data$p_i, FUN=function(vec){sum(vec==0)})
+        if( any(NumZero==0) ){
+          Map[["logsigma_pz"]][,2] = ifelse( NumZero==0, NA, Map[["logsigma_pz"]][,2])
+          Params[["logsigma_pz"]][,2] = ifelse( NumZero==0, 20, Params[["logsigma_pz"]][,2])
+        }
       }
       if( Data$ObsModel_p[p]==3 ){
         Map[["logsigma_pz"]][p,2] = NA
