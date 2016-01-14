@@ -317,6 +317,8 @@ Type objective_function<Type>::operator() ()
   REPORT( alpha_p );
   REPORT( phi_p );
   REPORT( logsigma_pz );
+  REPORT( Alpha_pr );
+  REPORT( Beta_pr );
   // Spatial field summaries
   REPORT( Cov_pp );
   REPORT( B_pp );
@@ -332,6 +334,7 @@ Type objective_function<Type>::operator() ()
   REPORT( M_PI );
   REPORT( logchat_i );
   // Derived summaries
-  
+  ADREPORT( B_pp );
+
   return jnll;
 }
