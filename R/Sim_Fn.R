@@ -1,7 +1,7 @@
 #n_species=4; n_years=20; n_stations=25; B_pp=NULL; ObsModel="Poisson"; Cov_pp=NULL; phi_p=NULL; sdlog=0.1; SpatialScale=0.1; SD_A=0.5; SD_E=0.2; corr_E=0.5; rho=0.8; logMeanDens=1; RandomSeed=NA; Loc=NULL
 #n_species=Nspecies; n_years=20; n_stations=30; phi_p=rep(0,Nspecies); SpatialScale=0.4; rho=0.5; SD_A=0.5; SD_E=0.2; corr_E=0.5; ObsModel=ObsModel 
 Sim_Fn <-
-function( n_species=4, n_years=20, n_stations=25, B_pp=NULL, ObsModel="Poisson", Cov_pp=NULL, phi_p=NULL, sdlog=0.1, SpatialScale=0.1, SD_A=0.5, SD_E=0.2, corr_E=0.5, rho=0.8, logMeanDens=1, RandomSeed=NA, Loc=NULL ){
+function( n_species=4, n_years=20, n_stations=25, B_pp=NULL, ObsModel="Poisson", Cov_pp=NULL, B_params=c(0,0.2), phi_p=NULL, sdlog=0.1, SpatialScale=0.1, SD_A=0.5, SD_E=0.2, corr_E=0.5, rho=0.8, logMeanDens=1, RandomSeed=NA, Loc=NULL ){
   if( !is.na(RandomSeed) ) set.seed(RandomSeed) 
   require( RandomFields )
   
@@ -10,19 +10,21 @@ function( n_species=4, n_years=20, n_stations=25, B_pp=NULL, ObsModel="Poisson",
     Cov_pp = matrix(corr_E,n_species,n_species)
     diag(Cov_pp) = 1
     Cov_pp = (rep(SD_E,n_species)%o%rep(1,n_species)) * Cov_pp * (rep(1,n_species)%o%rep(SD_E,n_species))
-    L_pj = t(chol(Cov_pp))
   }
+  L_pj = t(chol(Cov_pp))
   # Initial density relative to equilibrium
   if( is.null(phi_p) ) phi_p = rnorm(n_species, mean=0, sd=1)
   # Interaction matrix
   if( is.null(B_pp) ){
-    B_pp = matrix( rnorm(n_species*n_species,sd=0.2), nrow=n_species, ncol=n_species)
+    B_pp = matrix( rnorm(n_species*n_species,mean=B_params[1],sd=B_params[2]), nrow=n_species, ncol=n_species)
     diag(B_pp) = rho
   }
 
   if(any( Mod(eigen(B_pp)$values)>1 )) stop( "B_pp is not stationary!")
 
   # Spatial model
+  # Range = distance at which Correlation is approx. 0.1
+  # Scale = Range/2
   if( is.null(Loc) ) Loc = cbind( "x"=runif(n_stations, min=0,max=1), "y"=runif(n_stations, min=0,max=1) )
   model_A <- RMgauss(var=SD_A^2, scale=SpatialScale)
   model_E <- RMgauss(var=1, scale=SpatialScale)     # Unit variance, so variance enters via Cov_pp (I confirmed that var input to RMgauss is the marginal variance)
