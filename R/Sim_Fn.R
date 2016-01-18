@@ -40,8 +40,13 @@ function( n_species=4, n_years=20, n_stations=25, B_pp=NULL, ObsModel="Poisson",
   }
   
   # Stationary mean (Ives et al. 2003, Eq. 15)
-  dinf_sp = t( solve(diag(Nspecies)-B_pp) %*% t(A_sp)) 
-  
+  if( prod(eigen(B_pp)$values-1)==0 ){
+    dinf_sp = NULL
+    dzero_sp = A_sp
+  }else{
+    dzero_sp = dinf_sp = t( solve(diag(Nspecies)-B_pp) %*% t(A_sp))
+  }
+
   # Simulate Epsilon
   D_stj = array(NA, dim=c(n_stations,n_years,n_species))
   E_stp = array(NA, dim=c(n_stations,n_years,n_species))
@@ -56,7 +61,7 @@ function( n_species=4, n_years=20, n_stations=25, B_pp=NULL, ObsModel="Poisson",
   d_stp = dhat_stp = array(NA, dim=c(n_stations,n_years,n_species))
   # First year
   for(s in 1:n_stations){
-    dhat_stp[s,1,] = phi_p + dinf_sp[s,]
+    dhat_stp[s,1,] = phi_p + dzero_sp[s,]
     d_stp[s,1,] = dhat_stp[s,1,] + E_stp[s,1,]
   }
   # Project forward
@@ -89,7 +94,7 @@ function( n_species=4, n_years=20, n_stations=25, B_pp=NULL, ObsModel="Poisson",
   
   # Proportion of stationary covariance attributable to interactions B_pp (Ives et al. 2003, Eq. 24)
   approx_equal = function( n1,n2, tol=1e-6 ) ifelse( (abs(n1-n2)/mean(c(n1,n2)))<tol, TRUE, FALSE) 
-  if( !approx_equal(det(B_pp)^2,  det(Vinf_pp - Cov_pp)/det(Vinf_pp)) ) stop("Something wrong with MeanPropVar calculation")
+  #if( !approx_equal(det(B_pp)^2,  det(Vinf_pp - Cov_pp)/det(Vinf_pp)) ) stop("Something wrong with MeanPropVar calculation")
   # Sanity check: det(Vinf - Cov_pp) / det(Vinf) # Should be equal, and is
   MeanPropVar = det(B_pp)^(2/Nspecies)    # proportion of variance due to interactions, calculated as (geometric) average per species
   
