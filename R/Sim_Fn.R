@@ -91,8 +91,12 @@ function( n_species=4, n_years=20, n_stations=25, n_knots=n_stations, B_pp=NULL,
   Mod(eigen(B_pp)$values)
   
   # Stationary variance (Ives et al. 2003, Eq. 17)
-  Vinf_pp = matrix( solve(diag(Nspecies^2) - kronecker(B_pp,B_pp)) %*% as.vector(Cov_pp), nrow=Nspecies, ncol=Nspecies)
-  
+  if( prod(eigen(B_pp)$values-1)==0 ){
+    Vinf_pp = matrix(Inf, nrow=Nspecies, ncol=Nspecies)
+  }else{
+    Vinf_pp = matrix( solve(diag(Nspecies^2) - kronecker(B_pp,B_pp)) %*% as.vector(Cov_pp), nrow=Nspecies, ncol=Nspecies)
+  }
+
   # Proportion of stationary covariance attributable to interactions B_pp (Ives et al. 2003, Eq. 24)
   approx_equal = function( n1,n2, tol=1e-6 ) ifelse( (abs(n1-n2)/mean(c(n1,n2)))<tol, TRUE, FALSE) 
   #if( !approx_equal(det(B_pp)^2,  det(Vinf_pp - Cov_pp)/det(Vinf_pp)) ) stop("Something wrong with MeanPropVar calculation")
