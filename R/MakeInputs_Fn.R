@@ -105,7 +105,7 @@ MakeInputs_Fn = function( Version, options_vec, obsmodel_p=NULL, loc_x, a_x, dat
   } # End nonspatial
 
   # Spatial
-  if( Version%in%c("spatial_vam_v12","spatial_vam_v11","spatial_vam_v10","spatial_vam_v9","spatial_vam_v8","spatial_vam_v7","spatial_vam_v6","spatial_vam_v5","spatial_vam_v4","spatial_vam_v3","spatial_vam_v2","spatial_vam_v1")){
+  if( Version%in%c("spatial_vam_v13","spatial_vam_v12","spatial_vam_v11","spatial_vam_v10","spatial_vam_v9","spatial_vam_v8","spatial_vam_v7","spatial_vam_v6","spatial_vam_v5","spatial_vam_v4","spatial_vam_v3","spatial_vam_v2","spatial_vam_v1")){
     # Data
     # Necessary columns: sitenum, year, catch, spp
     if(Version%in%c("spatial_vam_v2","spatial_vam_v1")) Data = list("Options_vec"=options_vec, "n_i"=nrow(data_frame), "n_s"=length(unique(data_frame[,'sitenum'])), "n_t"=diff(range(data_frame[,'year']))+1, "n_k"=MeshList$mesh$n, "n_p"=length(unique(data_frame[,'spp'])), "n_j"=n_factors, "c_i"=data_frame[,'catch'], "p_i"=as.numeric(data_frame[,'spp'])-1, "s_i"=data_frame[,'sitenum']-1, "t_i"=data_frame[,'year']-1, "spde"=NULL)
@@ -113,9 +113,8 @@ MakeInputs_Fn = function( Version, options_vec, obsmodel_p=NULL, loc_x, a_x, dat
     if(Version%in%c("spatial_vam_v6")) Data = list("Options_vec"=options_vec, "ObsModel_p"=obsmodel_p, "n_i"=nrow(data_frame), "n_s"=length(unique(data_frame[,'sitenum'])), "n_t"=diff(range(data_frame[,'year']))+1, "n_k"=MeshList$mesh$n, "n_p"=length(unique(data_frame[,'spp'])), "n_j"=n_factors, "c_i"=data_frame[,'catch'], "p_i"=as.numeric(data_frame[,'spp'])-1, "s_i"=data_frame[,'sitenum']-1, "t_i"=data_frame[,'year']-min(data_frame[,'year']), "spde"=NULL, "G0"=MeshList$spde$param.inla$M0, "G1"=MeshList$spde$param.inla$M1, "G2"=MeshList$spde$param.inla$M2)
     if(Version%in%c("spatial_vam_v7")) Data = list("Options_vec"=options_vec, "ObsModel_p"=obsmodel_p, "n_i"=nrow(data_frame), "n_s"=length(unique(data_frame[,'sitenum'])), "n_t"=diff(range(data_frame[,'year']))+1, "n_k"=MeshList$mesh$n, "n_p"=length(unique(data_frame[,'spp'])), "n_j"=n_factors, "c_i"=data_frame[,'catch'], "p_i"=as.numeric(data_frame[,'spp'])-1, "s_i"=data_frame[,'sitenum']-1, "t_i"=data_frame[,'year']-min(data_frame[,'year']), "a_k"=a_k, "Z_kl"=rbind(loc_x,matrix(0,ncol=2,nrow=MeshList$mesh$n-nrow(loc_x))), "spde"=NULL, "G0"=MeshList$spde$param.inla$M0, "G1"=MeshList$spde$param.inla$M1, "G2"=MeshList$spde$param.inla$M2)
     if(Version%in%c("spatial_vam_v8")) Data = list("Options_vec"=options_vec, "ObsModel_p"=obsmodel_p, "n_i"=nrow(data_frame), "n_s"=length(unique(data_frame[,'sitenum'])), "n_t"=diff(range(data_frame[,'year']))+1, "n_k"=MeshList$mesh$n, "n_p"=length(unique(data_frame[,'spp'])), "n_r"=n_cointegrate, "n_j"=n_factors, "c_i"=data_frame[,'catch'], "p_i"=as.numeric(data_frame[,'spp'])-1, "s_i"=data_frame[,'sitenum']-1, "t_i"=data_frame[,'year']-min(data_frame[,'year']), "a_k"=a_k, "Z_kl"=rbind(loc_x,matrix(0,ncol=2,nrow=MeshList$mesh$n-nrow(loc_x))), "spde"=NULL, "G0"=MeshList$spde$param.inla$M0, "G1"=MeshList$spde$param.inla$M1, "G2"=MeshList$spde$param.inla$M2)
-    if(Version%in%c("spatial_vam_v12","spatial_vam_v11","spatial_vam_v10","spatial_vam_v9")) Data = list("Options_vec"=options_vec, "ObsModel_p"=obsmodel_p, "PenMult_z"=c(0), "n_i"=nrow(data_frame), "n_s"=length(unique(data_frame[,'sitenum'])), "n_t"=diff(range(data_frame[,'year']))+1, "n_k"=MeshList$mesh$n, "n_p"=length(unique(data_frame[,'spp'])), "n_r"=n_cointegrate, "n_j"=n_factors, "c_i"=data_frame[,'catch'], "p_i"=as.numeric(data_frame[,'spp'])-1, "s_i"=data_frame[,'sitenum']-1, "t_i"=data_frame[,'year']-min(data_frame[,'year']), "a_k"=a_k, "Z_kl"=rbind(loc_x,matrix(0,ncol=2,nrow=MeshList$mesh$n-nrow(loc_x))), "spde"=NULL, "G0"=MeshList$spde$param.inla$M0, "G1"=MeshList$spde$param.inla$M1, "G2"=MeshList$spde$param.inla$M2)
+    if(Version%in%c("spatial_vam_v13","spatial_vam_v12","spatial_vam_v11","spatial_vam_v10","spatial_vam_v9")) Data = list("Options_vec"=options_vec, "ObsModel_p"=obsmodel_p, "PenMult_z"=c(0,10), "n_i"=nrow(data_frame), "n_s"=length(unique(data_frame[,'sitenum'])), "n_t"=diff(range(data_frame[,'year']))+1, "n_k"=MeshList$mesh$n, "n_p"=length(unique(data_frame[,'spp'])), "n_r"=n_cointegrate, "n_j"=n_factors, "c_i"=data_frame[,'catch'], "p_i"=as.numeric(data_frame[,'spp'])-1, "s_i"=data_frame[,'sitenum']-1, "t_i"=data_frame[,'year']-min(data_frame[,'year']), "a_k"=a_k, "Z_kl"=rbind(loc_x,matrix(0,ncol=2,nrow=MeshList$mesh$n-nrow(loc_x))), "spde"=NULL, "G0"=MeshList$spde$param.inla$M0, "G1"=MeshList$spde$param.inla$M1, "G2"=MeshList$spde$param.inla$M2)
     if("spde" %in% names(Data)) Data[['spde']] = list("n_s"=MeshList$spde$n.spde, "n_tri"=nrow(MeshList$mesh$graph$tv), "Tri_Area"=MeshList$Tri_Area, "E0"=MeshList$E0, "E1"=MeshList$E1, "E2"=MeshList$E2, "TV"=MeshList$TV-1, "G0"=MeshList$spde$param.inla$M0, "G0_inv"=inla.as.dgTMatrix(solve(MeshList$spde$param.inla$M0)) )
-    if("PenMult_z" %in% names(Data)) Data[['PenMult_z']] = 0
 
     # Parameters
     if(Version=="spatial_vam_v1") Params = list("Hinput_z"=c(0,0), "logkappa"=log(1), "alpha_p"=rep(0,Data$n_p), "phi_p"=rep(0,Data$n_p), "logtauA_p"=rep(0,Data$n_p), "L_val"=rnorm(Data$n_j*Data$n_p-Data$n_j*(Data$n_j-1)/2), "B_pp"=matrix(rnorm(Data$n_p^2,sd=0.1),Data$n_p,Data$n_p), "d_ktp"=array(2,dim=unlist(Data[c('n_k','n_t','n_p')])), "Ainput_kp"=matrix(0,nrow=Data$n_k,ncol=Data$n_p))
@@ -125,11 +124,12 @@ MakeInputs_Fn = function( Version, options_vec, obsmodel_p=NULL, loc_x, a_x, dat
     if(Version%in%c("spatial_vam_v9","spatial_vam_v8")) Params = list("Hinput_z"=c(0,0), "logkappa"=log(1), "alpha_p"=rep(0,Data$n_p), "phi_p"=rep(0,Data$n_p), "logtauA_p"=rep(0,Data$n_p), "L_val"=ifelse( is.na(fixdiag(Nrow=Data$n_p, Ncol=Data$n_j)), 1, 0), "Alpha_pr"=rbind(diag(-0.5,Data$n_r),rmatrix(nrow=Data$n_p-Data$n_r,ncol=Data$n_r,sd=0.01)), "Beta_pr"=rbind(diag(Data$n_r),rmatrix(nrow=Data$n_p-Data$n_r,ncol=Data$n_r,sd=0.2)), "logsigma_pz"=matrix(0,nrow=Data$n_p,2), "d_ktp"=array(0,dim=c(Data$n_k,Data$n_t,Data$n_p)), "Ainput_kp"=matrix(0,nrow=Data$n_k,ncol=Data$n_p), "delta_i"=rep(0,Data$n_i))      # "d_ktp"=array(2,dim=unlist(Data[c('n_k','n_t','n_p')]))
     if(Version%in%c("spatial_vam_v10")) Params = list("Hinput_z"=c(0,0), "logkappa"=log(1), "alpha_p"=rep(0,Data$n_p), "phi_p"=rep(0,Data$n_p), "logMargSigmaA_p"=rep(0,Data$n_p), "L_val"=ifelse( is.na(fixdiag(Nrow=Data$n_p, Ncol=Data$n_j)), 1, 0), "Alpha_pr"=rbind(diag(-0.5,Data$n_r),rmatrix(nrow=Data$n_p-Data$n_r,ncol=Data$n_r,sd=0.01)), "Beta_pr"=rbind(diag(Data$n_r),rmatrix(nrow=Data$n_p-Data$n_r,ncol=Data$n_r,sd=0.2)), "logsigma_pz"=matrix(0,nrow=Data$n_p,2), "d_ktp"=array(0,dim=c(Data$n_k,Data$n_t,Data$n_p)), "Ainput_kp"=matrix(0,nrow=Data$n_k,ncol=Data$n_p), "delta_i"=rep(0,Data$n_i))      # "d_ktp"=array(2,dim=unlist(Data[c('n_k','n_t','n_p')]))
     if(Version%in%c("spatial_vam_v12","spatial_vam_v11")) Params = list("Hinput_z"=c(0,0), "logkappa_z"=rep(0,Data$n_p+1), "alpha_p"=rep(0,Data$n_p), "phi_p"=rep(0,Data$n_p), "logMargSigmaA_p"=rep(0,Data$n_p), "L_val"=ifelse( is.na(fixdiag(Nrow=Data$n_p, Ncol=Data$n_j)), 1, 0), "Alpha_pr"=rbind(rmatrix(nrow=Data$n_r,ncol=Data$n_r,sd=0.01,diag=-0.5),rmatrix(nrow=Data$n_p-Data$n_r,ncol=Data$n_r,sd=0.01)), "Beta_pr"=rbind(diag(Data$n_r),rmatrix(nrow=Data$n_p-Data$n_r,ncol=Data$n_r,sd=0.2)), "logsigma_pz"=matrix(0,nrow=Data$n_p,2), "d_ktp"=array(0,dim=c(Data$n_k,Data$n_t,Data$n_p)), "Ainput_kp"=matrix(0,nrow=Data$n_k,ncol=Data$n_p), "delta_i"=rep(0,Data$n_i))      # "d_ktp"=array(2,dim=unlist(Data[c('n_k','n_t','n_p')]))
+    if(Version%in%c("spatial_vam_v13")) Params = list("Hinput_z"=c(0,0), "logkappa_z"=rep(0,Data$n_p+1), "alpha_p"=rep(0,Data$n_p), "phi_p"=rep(0,Data$n_p), "logMargSigmaA_p"=rep(0,Data$n_p), "L_val"=ifelse( is.na(fixdiag(Nrow=Data$n_p, Ncol=Data$n_j)), 1, 0), "Alpha_pr"=rbind(rmatrix(nrow=Data$n_r,ncol=Data$n_r,sd=0.01,diag=-0.5),rmatrix(nrow=Data$n_p-Data$n_r,ncol=Data$n_r,sd=0.01)), "Beta_pr"=rbind(diag(Data$n_r),rmatrix(nrow=Data$n_p-Data$n_r,ncol=Data$n_r,sd=0.2)), "logsigma_pz"=matrix(0,nrow=Data$n_p,2), "d_ktp"=array(0,dim=c(Data$n_k,Data$n_t,Data$n_p)), "Ainput_kp"=matrix(0,nrow=Data$n_k,ncol=Data$n_p), "delta_i"=rep(0,Data$n_i))      # "d_ktp"=array(2,dim=unlist(Data[c('n_k','n_t','n_p')]))
 
     # Random
     # Treating alpha_p, phi_p and B_pp as random (in REML) results in very slow inner optimization!  (100s of steps)
     Random = c( "Ainput_kp", "d_ktp" )
-    if( Version%in%c("spatial_vam_v11","spatial_vam_v10","spatial_vam_v9","spatial_vam_v8","spatial_vam_v7","spatial_vam_v6","spatial_vam_v5")) Random = c(Random, "delta_i")
+    if( Version%in%c("spatial_vam_v13","spatial_vam_v12","spatial_vam_v11","spatial_vam_v10","spatial_vam_v9","spatial_vam_v8","spatial_vam_v7","spatial_vam_v6","spatial_vam_v5")) Random = c(Random, "delta_i")
     if(use_REML==TRUE) Random = c(Random, "alpha_p", "phi_p")  # , "B_pp"
 
     # Map
@@ -142,14 +142,14 @@ MakeInputs_Fn = function( Version, options_vec, obsmodel_p=NULL, loc_x, a_x, dat
     for(p in 1:Data$n_p){
       if( Data$ObsModel_p[p]==0 ){
         Map[["logsigma_pz"]][p,] = c(NA,NA)
-        if( Version%in%c("spatial_vam_v12","spatial_vam_v11","spatial_vam_v10","spatial_vam_v9","spatial_vam_v8","spatial_vam_v7","spatial_vam_v6","spatial_vam_v5") ) Map[["delta_i"]][which((Data$p_i+1)==p)] = rep(NA,sum((Data$p_i+1)==p))
+        if( Version%in%c("spatial_vam_v13","spatial_vam_v12","spatial_vam_v11","spatial_vam_v10","spatial_vam_v9","spatial_vam_v8","spatial_vam_v7","spatial_vam_v6","spatial_vam_v5") ) Map[["delta_i"]][which((Data$p_i+1)==p)] = rep(NA,sum((Data$p_i+1)==p))
       }
       if( Data$ObsModel_p[p]==1 ){
         Map[["logsigma_pz"]][p,2] = NA
-        if( Version%in%c("spatial_vam_v12","spatial_vam_v11","spatial_vam_v10","spatial_vam_v9","spatial_vam_v8","spatial_vam_v7","spatial_vam_v6","spatial_vam_v5") ) Map[["delta_i"]][which((Data$p_i+1)==p)] = rep(NA,sum((Data$p_i+1)==p))
+        if( Version%in%c("spatial_vam_v13","spatial_vam_v12","spatial_vam_v11","spatial_vam_v10","spatial_vam_v9","spatial_vam_v8","spatial_vam_v7","spatial_vam_v6","spatial_vam_v5") ) Map[["delta_i"]][which((Data$p_i+1)==p)] = rep(NA,sum((Data$p_i+1)==p))
       }
       if( Data$ObsModel_p[p]==2 ){
-        if( Version%in%c("spatial_vam_v12","spatial_vam_v11","spatial_vam_v10","spatial_vam_v9","spatial_vam_v8","spatial_vam_v7","spatial_vam_v6","spatial_vam_v5") ) Map[["delta_i"]][which((Data$p_i+1)==p)] = rep(NA,sum((Data$p_i+1)==p))
+        if( Version%in%c("spatial_vam_v13","spatial_vam_v12","spatial_vam_v11","spatial_vam_v10","spatial_vam_v9","spatial_vam_v8","spatial_vam_v7","spatial_vam_v6","spatial_vam_v5") ) Map[["delta_i"]][which((Data$p_i+1)==p)] = rep(NA,sum((Data$p_i+1)==p))
         # Check number of zeros
         NumZero = tapply( Data$c_i, INDEX=Data$p_i, FUN=function(vec){sum(vec==0)})
         if( any(NumZero==0) ){
@@ -162,7 +162,7 @@ MakeInputs_Fn = function( Version, options_vec, obsmodel_p=NULL, loc_x, a_x, dat
       }
       if( Data$ObsModel_p[p]==4 ){
         Map[["logsigma_pz"]][p,2] = NA
-        if( Version%in%c("spatial_vam_v12","spatial_vam_v11","spatial_vam_v10","spatial_vam_v9","spatial_vam_v8","spatial_vam_v7","spatial_vam_v6","spatial_vam_v5") ) Map[["delta_i"]][which((Data$p_i+1)==p)] = rep(NA,sum((Data$p_i+1)==p))
+        if( Version%in%c("spatial_vam_v13","spatial_vam_v12","spatial_vam_v11","spatial_vam_v10","spatial_vam_v9","spatial_vam_v8","spatial_vam_v7","spatial_vam_v6","spatial_vam_v5") ) Map[["delta_i"]][which((Data$p_i+1)==p)] = rep(NA,sum((Data$p_i+1)==p))
       }
     }
     Map[["logsigma_pz"]] = factor( Map[["logsigma_pz"]] )
@@ -184,9 +184,18 @@ MakeInputs_Fn = function( Version, options_vec, obsmodel_p=NULL, loc_x, a_x, dat
     if( "Beta_pr"%in%names(Params) && Options_vec[["B_type"]]%in%c(0,2) ){
       Map[["Beta_pr"]] = factor(rbind( matrix(NA,nrow=Data$n_r,ncol=Data$n_r), matrix(seq_pos(Data$n_r*(Data$n_p-Data$n_r)),nrow=Data$n_p-Data$n_r,ncol=Data$n_r)))
     }
+    if( "Beta_pr"%in%names(Params) && Options_vec[["B_type"]]%in%c(3) ){
+      Map[["Beta_pr"]] = rbind( matrix(NA,nrow=Data$n_r,ncol=Data$n_r), matrix(seq_pos(Data$n_r*(Data$n_p-Data$n_r)),nrow=Data$n_p-Data$n_r,ncol=Data$n_r))
+      Map[["Beta_pr"]][cbind(1:Data$n_r,1:Data$n_r)] = max(Map[["Beta_pr"]],0,na.rm=TRUE) + 1:Data$n_r
+      Map[["Beta_pr"]] = factor(Map[["Beta_pr"]])
+      Params[["Beta_pr"]][cbind(1:Data$n_r,1:Data$n_r)] = -0.5
+    }
     # Better initial conditions for eigen-cointegration
     if( "Alpha_pr"%in%names(Params) && Options_vec[["B_type"]]%in%c(2) && Version%in%c("spatial_vam_v11") ){
       Params[["Alpha_pr"]][1,] = -0.5
+    }
+    if( "Alpha_pr"%in%names(Params) && Options_vec[["B_type"]]%in%c(3) ){
+      Params[["Alpha_pr"]][] = 0.1 * rnorm(prod(dim(Params[["Alpha_pr"]])))
     }
     # Fix alpha if desired
     if( Data$Options_vec['IncludeAlpha']==0){
@@ -197,11 +206,6 @@ MakeInputs_Fn = function( Version, options_vec, obsmodel_p=NULL, loc_x, a_x, dat
     if( estimate_phi==FALSE ){
       Map[["phi_p"]] = factor( rep(NA,length(Params[["phi_p"]])) )
       Params[["phi_p"]][] = 0
-    }
-    # fix phi
-    if( Data_set=="Swain_et_al" ){
-      #Map[["phi_p"]] = factor( c(NA,NA,NA,1) )
-      #Params[["phi_p"]][] = 0
     }
     # Make B_pp diagonal
     if( independentTF==TRUE ){

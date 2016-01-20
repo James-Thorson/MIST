@@ -1,7 +1,7 @@
 #n_species=4; n_years=20; n_stations=25; B_pp=NULL; ObsModel="Poisson"; Cov_pp=NULL; phi_p=NULL; sdlog=0.1; SpatialScale=0.1; SD_A=0.5; SD_E=0.2; corr_E=0.5; rho=0.8; logMeanDens=1; RandomSeed=NA; Loc=NULL
 #n_species=Nspecies; n_years=20; n_stations=30; phi_p=rep(0,Nspecies); SpatialScale=0.4; rho=0.5; SD_A=0.5; SD_E=0.2; corr_E=0.5; ObsModel=ObsModel 
 Sim_Fn <-
-function( n_species=4, n_years=20, n_stations=25, n_knots=n_stations, B_pp=NULL, ObsModel="Poisson", Cov_pp=NULL, B_params=c(0,0.2), phi_p=NULL, sdlog=0.1, SpatialScale=0.1, SD_A=0.5, SD_E=0.2, corr_E=0.5, rho=0.8, logMeanDens=1, RandomSeed=NA, Loc=NULL ){
+function( n_species=4, n_years=20, n_years_burnin=0, n_stations=25, n_knots=n_stations, B_pp=NULL, ObsModel="Poisson", Cov_pp=NULL, B_params=c(0,0.2), phi_p=NULL, sdlog=0.1, SpatialScale=0.1, SD_A=0.5, SD_E=0.2, corr_E=0.5, rho=0.8, logMeanDens=1, RandomSeed=NA, Loc=NULL ){
   if( !is.na(RandomSeed) ) set.seed(RandomSeed) 
   require( RandomFields )
   require( RANN )
@@ -49,9 +49,9 @@ function( n_species=4, n_years=20, n_stations=25, n_knots=n_stations, B_pp=NULL,
   }
 
   # Simulate Epsilon
-  D_stj = array(NA, dim=c(n_stations,n_years,n_species))
-  E_stp = array(NA, dim=c(n_stations,n_years,n_species))
-  for(t in 1:n_years){
+  D_stj = array(NA, dim=c(n_stations,n_years+n_years_burnin,n_species))
+  E_stp = array(NA, dim=c(n_stations,n_years+n_years_burnin,n_species))
+  for(t in 1:(n_years+n_years_burnin)){
     for(j in 1:n_species) D_stj[,t,j] = RFsimulate(model=model_E, x=Loc[,'x'], y=Loc[,'y'])@data[,1]
     E_stp[,t,] = D_stj[,t,] %*% t(L_pj)
   }
@@ -59,14 +59,14 @@ function( n_species=4, n_years=20, n_stations=25, n_knots=n_stations, B_pp=NULL,
   # Sanity check on transformed process error variance: mean(apply(SimList$E_stp, MARGIN=2:3, FUN=function(vec){sqrt(mean(vec^2))}))
 
   # calculate log-density d_stp
-  d_stp = dhat_stp = array(NA, dim=c(n_stations,n_years,n_species))
+  d_stp = dhat_stp = array(NA, dim=c(n_stations,n_years+n_years_burnin,n_species))
   # First year
   for(s in 1:n_stations){
     dhat_stp[s,1,] = phi_p + dzero_sp[s,]
     d_stp[s,1,] = dhat_stp[s,1,] + E_stp[s,1,]
   }
   # Project forward
-  for(t in 2:n_years){
+  for(t in 2:(n_years+n_years_burnin)){
   for(s in 1:n_stations){
     dhat_stp[s,t,] = A_sp[s,] + B_pp%*%d_stp[s,t-1,]
     d_stp[s,t,] = dhat_stp[s,t,] + E_stp[s,t,]
@@ -74,10 +74,10 @@ function( n_species=4, n_years=20, n_stations=25, n_knots=n_stations, B_pp=NULL,
   
   # Simulate data
   DF = NULL
-  for(t in 1:n_years){
+  for(t in n_years_burnin+1:n_years){
   for(s in 1:n_stations){
   for(p in 1:n_species){
-    Tmp = c("sitenum"=s, "spp"=p, "year"=t, "catch"=NA, 'waterTmpC'=0, 'lambda'=exp(d_stp[s,t,p]) )
+    Tmp = c("sitenum"=s, "spp"=p, "year"=t-n_years_burnin, "catch"=NA, 'waterTmpC'=0, 'lambda'=exp(d_stp[s,t,p]) )
     if(ObsModel=="Poisson") Tmp['catch'] = rpois(1,lambda=Tmp['lambda'])
     if(ObsModel=="Lognormal") Tmp['catch'] = rlnorm(1,meanlog=log(Tmp['lambda']),sdlog=sdlog)
     DF = rbind(DF, Tmp)
@@ -111,8 +111,9 @@ function( n_species=4, n_years=20, n_stations=25, n_knots=n_stations, B_pp=NULL,
   MaxReactivity = max(eigen( t(B_pp)%*%B_pp )$values) - 1
   
   # Plot total abundance
-  par( mfrow=c(1,2), mar=c(3,3,0,0), mgp=c(1.75,0.25,0), tck=-0.02 )  
-  matplot( apply( d_stp, MARGIN=2:3, FUN=sum), type="l", xlab="Year", ylab="Total log-abundance")
+  par( mfrow=c(1,3), mar=c(3,3,0,0), mgp=c(1.75,0.25,0), tck=-0.02 )
+  matplot( apply( d_stp, MARGIN=2:3, FUN=sum), type="l", xlab="Year", ylab="Total log-abundance"); abline(v=n_years_burnin+0.5)
+  matplot( apply( exp(d_stp), MARGIN=2:3, FUN=sum), type="l", xlab="Year", ylab="Total abundance"); abline(v=n_years_burnin+0.5)
   plot( y=DF$catch, x=DF$lambda, col=rainbow(n_species)[as.numeric(DF$spp)], xlab="Expected count", ylab="Observed count")
 
   # Change to number of knots
