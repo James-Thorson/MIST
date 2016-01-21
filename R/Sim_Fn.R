@@ -1,7 +1,7 @@
 #n_species=4; n_years=20; n_stations=25; B_pp=NULL; ObsModel="Poisson"; Cov_pp=NULL; phi_p=NULL; sdlog=0.1; SpatialScale=0.1; SD_A=0.5; SD_E=0.2; corr_E=0.5; rho=0.8; logMeanDens=1; RandomSeed=NA; Loc=NULL
 #n_species=Nspecies; n_years=20; n_stations=30; phi_p=rep(0,Nspecies); SpatialScale=0.4; rho=0.5; SD_A=0.5; SD_E=0.2; corr_E=0.5; ObsModel=ObsModel 
 Sim_Fn <-
-function( n_species=4, n_years=20, n_years_burnin=0, n_stations=25, n_knots=n_stations, B_pp=NULL, ObsModel="Poisson", Cov_pp=NULL, B_params=c(0,0.2), phi_p=NULL, sdlog=0.1, SpatialScale=0.1, SD_A=0.5, SD_E=0.2, corr_E=0.5, rho=0.8, logMeanDens=1, RandomSeed=NA, Loc=NULL ){
+function( n_species=4, n_years=20, n_years_burnin=0, n_stations=25, n_samp_per_station=1, n_knots=n_stations, start_from_equilibrium=TRUE, B_pp=NULL, ObsModel="Poisson", Cov_pp=NULL, B_params=c(0,0.2), phi_p=NULL, sdlog=0.1, SpatialScale=0.1, SD_A=0.5, SD_E=0.2, corr_E=0.5, rho=0.8, logMeanDens=1, RandomSeed=NA, Loc=NULL ){
   if( !is.na(RandomSeed) ) set.seed(RandomSeed) 
   require( RandomFields )
   require( RANN )
@@ -41,7 +41,7 @@ function( n_species=4, n_years=20, n_years_burnin=0, n_stations=25, n_knots=n_st
   }
   
   # Stationary mean (Ives et al. 2003, Eq. 15)
-  if( prod(eigen(B_pp)$values-1)==0 ){
+  if( prod(eigen(B_pp)$values-1)==0 | start_from_equilibrium==FALSE ){
     dinf_sp = NULL
     dzero_sp = A_sp
   }else{
@@ -77,9 +77,9 @@ function( n_species=4, n_years=20, n_years_burnin=0, n_stations=25, n_knots=n_st
   for(t in n_years_burnin+1:n_years){
   for(s in 1:n_stations){
   for(p in 1:n_species){
-    Tmp = c("sitenum"=s, "spp"=p, "year"=t-n_years_burnin, "catch"=NA, 'waterTmpC'=0, 'lambda'=exp(d_stp[s,t,p]) )
-    if(ObsModel=="Poisson") Tmp['catch'] = rpois(1,lambda=Tmp['lambda'])
-    if(ObsModel=="Lognormal") Tmp['catch'] = rlnorm(1,meanlog=log(Tmp['lambda']),sdlog=sdlog)
+    Tmp = c("sitenum"=s, "spp"=p, "year"=t-n_years_burnin, "catch"=rep(NA,n_samp_per_station), 'waterTmpC'=0, 'lambda'=exp(d_stp[s,t,p]) )
+    if(ObsModel=="Poisson") Tmp['catch'] = rpois(n_samp_per_station, lambda=Tmp['lambda'])
+    if(ObsModel=="Lognormal") Tmp['catch'] = rlnorm(n_samp_per_station, meanlog=log(Tmp['lambda']), sdlog=sdlog)
     DF = rbind(DF, Tmp)
   }}}
   DF = data.frame(DF, row.names=NULL)
@@ -112,8 +112,8 @@ function( n_species=4, n_years=20, n_years_burnin=0, n_stations=25, n_knots=n_st
   
   # Plot total abundance
   par( mfrow=c(1,3), mar=c(3,3,0,0), mgp=c(1.75,0.25,0), tck=-0.02 )
-  matplot( apply( d_stp, MARGIN=2:3, FUN=sum), type="l", xlab="Year", ylab="Total log-abundance"); abline(v=n_years_burnin+0.5)
-  matplot( apply( exp(d_stp), MARGIN=2:3, FUN=sum), type="l", xlab="Year", ylab="Total abundance"); abline(v=n_years_burnin+0.5)
+  matplot( apply( d_stp, MARGIN=2:3, FUN=sum), type="l", xlab="Year", ylab="Total log-abundance"); abline(v=n_years_burnin+0.5, lty="dotted", lwd=2)
+  matplot( apply( exp(d_stp), MARGIN=2:3, FUN=sum), type="l", xlab="Year", ylab="Total abundance"); abline(v=n_years_burnin+0.5, lty="dotted", lwd=2)
   plot( y=DF$catch, x=DF$lambda, col=rainbow(n_species)[as.numeric(DF$spp)], xlab="Expected count", ylab="Observed count")
 
   # Change to number of knots
@@ -124,6 +124,6 @@ function( n_species=4, n_years=20, n_years_burnin=0, n_stations=25, n_knots=n_st
   }
 
   # Return stuff
-  Sim_List = list("DF"=DF, "L_pj"=L_pj, "Cov_pp"=Cov_pp, "B_pp"=B_pp, "alpha_p"=alpha_p, "phi_p"=phi_p, "Loc"=Loc, "A_sp"=A_sp, "D_stj"=D_stj, "E_stp"=E_stp, "dhat_stp"=dhat_stp, "d_stp"=d_stp, "dinf_sp"=dinf_sp, "Vinf_pp"=Vinf_pp, "MeanPropVar"=MeanPropVar, "Reactivity"=Reactivity, "MaxReactivity"=MaxReactivity)
+  Sim_List = list("DF"=DF, "L_pj"=L_pj, "Cov_pp"=Cov_pp, "B_pp"=B_pp, "alpha_p"=alpha_p, "phi_p"=phi_p, "Loc"=Loc, "A_sp"=A_sp, "D_stj"=D_stj, "E_stp"=E_stp, "dhat_stp"=dhat_stp, "d_stp"=d_stp, "dinf_sp"=dinf_sp, "dzero_sp"=dzero_sp, "Vinf_pp"=Vinf_pp, "MeanPropVar"=MeanPropVar, "Reactivity"=Reactivity, "MaxReactivity"=MaxReactivity)
   return(Sim_List)
 }
