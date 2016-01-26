@@ -77,11 +77,12 @@ function( n_species=4, n_years=20, n_years_burnin=0, n_stations=25, n_samp_per_s
   for(t in n_years_burnin+1:n_years){
   for(s in 1:n_stations){
   for(p in 1:n_species){
-    Tmp = c("sitenum"=s, "spp"=p, "year"=t-n_years_burnin, "catch"=rep(NA,n_samp_per_station), 'waterTmpC'=0, 'lambda'=exp(d_stp[s,t,p]) )
-    if(ObsModel=="Poisson") Tmp['catch'] = rpois(n_samp_per_station, lambda=Tmp['lambda'])
-    if(ObsModel=="Lognormal") Tmp['catch'] = rlnorm(n_samp_per_station, meanlog=log(Tmp['lambda']), sdlog=sdlog)
+  for(r in 1:n_samp_per_station){
+    Tmp = c("sitenum"=s, "spp"=p, "year"=t-n_years_burnin, "catch"=NA, 'waterTmpC'=0, 'lambda'=exp(d_stp[s,t,p]) )
+    if(ObsModel=="Poisson") Tmp['catch'] = rpois(1, lambda=Tmp['lambda'])
+    if(ObsModel=="Lognormal") Tmp['catch'] = rlnorm(1, meanlog=log(Tmp['lambda']), sdlog=sdlog)
     DF = rbind(DF, Tmp)
-  }}}
+  }}}}
   DF = data.frame(DF, row.names=NULL)
   DF[,'spp'] = factor( letters[DF[,'spp']] )
   if( n_species>26 ) stop( "problem with using letters")
