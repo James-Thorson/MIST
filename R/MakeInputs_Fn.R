@@ -223,6 +223,7 @@ MakeInputs_Fn = function( Version, options_vec, obsmodel_p=NULL, loc_x, a_x, dat
         Params[["Alpha_pr"]][] = 0
         Params[["L_val"]][] = 0
       }
+      Params[["L_val"]] = Params[["L_val"]][1:Data$n_p]
     }
     # Fix logkappa_z at shared value by default
     if("logkappa_z" %in% names(Params)) Map[['logkappa_z']] = factor( rep(1,length(Params[["logkappa_z"]])) )
