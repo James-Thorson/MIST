@@ -112,9 +112,14 @@ function( n_species=4, n_years=20, n_years_burnin=0, n_stations=25, n_samp_per_s
   MaxReactivity = max(eigen( t(B_pp)%*%B_pp )$values) - 1
   
   # Plot total abundance
-  par( mfrow=c(1,3), mar=c(3,3,0,0), mgp=c(1.75,0.25,0), tck=-0.02 )
+  par( mfrow=c(2,3), mar=c(3,3,0,0), mgp=c(1.75,0.25,0), tck=-0.02 )
+  # With burnin
   matplot( apply( d_stp, MARGIN=2:3, FUN=sum), type="l", xlab="Year", ylab="Total log-abundance"); abline(v=n_years_burnin+0.5, lty="dotted", lwd=2)
   matplot( apply( exp(d_stp), MARGIN=2:3, FUN=sum), type="l", xlab="Year", ylab="Total abundance"); abline(v=n_years_burnin+0.5, lty="dotted", lwd=2)
+  plot( y=DF$catch, x=DF$lambda, col=rainbow(n_species)[as.numeric(DF$spp)], xlab="Expected count", ylab="Observed count")
+  # Without burnin
+  matplot( apply( d_stp[,n_years_burnin+1:n_years,], MARGIN=2:3, FUN=sum), type="l", xlab="Year", ylab="Total log-abundance")
+  matplot( apply( exp(d_stp[,n_years_burnin+1:n_years,]), MARGIN=2:3, FUN=sum), type="l", xlab="Year", ylab="Total abundance")
   plot( y=DF$catch, x=DF$lambda, col=rainbow(n_species)[as.numeric(DF$spp)], xlab="Expected count", ylab="Observed count")
 
   # Change to number of knots
