@@ -92,7 +92,7 @@ function( n_species=4, n_years=20, n_years_burnin=0, n_stations=25, n_samp_per_s
   Mod(eigen(B_pp)$values)
   
   # Stationary variance (Ives et al. 2003, Eq. 17)
-  if( prod(eigen(B_pp)$values-1)==0 ){
+  if( any(abs(prod(eigen(B_pp)$values-1)) <= 1e-4) ){
     Vinf_pp = matrix(Inf, nrow=Nspecies, ncol=Nspecies)
   }else{
     Vinf_pp = matrix( solve(diag(Nspecies^2) - kronecker(B_pp,B_pp)) %*% as.vector(Cov_pp), nrow=Nspecies, ncol=Nspecies)
