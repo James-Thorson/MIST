@@ -21,7 +21,7 @@ function( n_species=4, n_years=20, n_years_burnin=0, n_stations=25, n_samp_per_s
     diag(B_pp) = rho
   }
 
-  if(any( Mod(eigen(B_pp)$values)>1 )) stop( "B_pp is not stationary!")
+  if(any( Mod(eigen(B_pp)$values)>1.01 )) stop( "B_pp is not stationary!")
 
   # Spatial model
   # Range = distance at which Correlation is approx. 0.1
