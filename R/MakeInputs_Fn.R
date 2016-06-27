@@ -54,7 +54,7 @@ MakeInputs_Fn = function( Version, options_vec, obsmodel_p=NULL, loc_x, a_x, dat
       Params[["phi_p"]][] = 0
     }
     # Fix Alpha_pr and Beta_pr for the eigendecomposition method
-    if( Options_vec[["B_type"]]==1 ){
+    if( Options_vec[["B_type"]] %in% c(1) ){
       # Alpha_pr, fix first row at one, so that the magnitude of each eigenvector is not colinear with the eigenvalues
       Map[["Alpha_pr"]] = array(1:prod(dim(Params[["Beta_pr"]])), dim=dim(Params[["Beta_pr"]]))
       Map[["Alpha_pr"]][1,] = NA
@@ -67,7 +67,7 @@ MakeInputs_Fn = function( Version, options_vec, obsmodel_p=NULL, loc_x, a_x, dat
       Params[["Beta_pr"]] = array( ifelse(!is.na(Map[["Beta_pr"]]),-0.5,0), dim=dim(Params[["Beta_pr"]]))  # B = U%*%L%*%solve(U) + I_pp, so -1<=eigenvalues<=0
     }
     # Identifiability restrictions on Beta_pr for co-integration method
-    if( "Beta_pr"%in%names(Params) && Options_vec[["B_type"]]%in%c(0,2) ){
+    if( "Beta_pr"%in%names(Params) && Options_vec[["B_type"]]%in%c(0,2,4) ){
       Map[["Beta_pr"]] = factor(rbind( matrix(NA,nrow=Data$n_r,ncol=Data$n_r), matrix(seq_pos(Data$n_r*(Data$n_p-Data$n_r)),nrow=Data$n_p-Data$n_r,ncol=Data$n_r)))
     }
     # Better initial conditions for eigen-cointegration
@@ -120,7 +120,7 @@ MakeInputs_Fn = function( Version, options_vec, obsmodel_p=NULL, loc_x, a_x, dat
     if(Version%in%c("spatial_vam_v6")) Data = list("Options_vec"=options_vec, "ObsModel_p"=obsmodel_p, "n_i"=nrow(data_frame), "n_s"=length(unique(data_frame[,'sitenum'])), "n_t"=diff(range(data_frame[,'year']))+1, "n_k"=MeshList$mesh$n, "n_p"=length(unique(data_frame[,'spp'])), "n_j"=n_factors, "c_i"=data_frame[,'catch'], "p_i"=as.numeric(data_frame[,'spp'])-1, "s_i"=data_frame[,'sitenum']-1, "t_i"=data_frame[,'year']-min(data_frame[,'year']), "spde"=NULL, "M0"=M0, "M1"=M1, "M2"=M2)
     if(Version%in%c("spatial_vam_v7")) Data = list("Options_vec"=options_vec, "ObsModel_p"=obsmodel_p, "n_i"=nrow(data_frame), "n_s"=length(unique(data_frame[,'sitenum'])), "n_t"=diff(range(data_frame[,'year']))+1, "n_k"=MeshList$mesh$n, "n_p"=length(unique(data_frame[,'spp'])), "n_j"=n_factors, "c_i"=data_frame[,'catch'], "p_i"=as.numeric(data_frame[,'spp'])-1, "s_i"=data_frame[,'sitenum']-1, "t_i"=data_frame[,'year']-min(data_frame[,'year']), "a_k"=a_k, "Z_kl"=rbind(loc_x,matrix(0,ncol=2,nrow=MeshList$mesh$n-nrow(loc_x))), "spde"=NULL, "M0"=M0, "M1"=M1, "M2"=M2)
     if(Version%in%c("spatial_vam_v8")) Data = list("Options_vec"=options_vec, "ObsModel_p"=obsmodel_p, "n_i"=nrow(data_frame), "n_s"=length(unique(data_frame[,'sitenum'])), "n_t"=diff(range(data_frame[,'year']))+1, "n_k"=MeshList$mesh$n, "n_p"=length(unique(data_frame[,'spp'])), "n_r"=n_cointegrate, "n_j"=n_factors, "c_i"=data_frame[,'catch'], "p_i"=as.numeric(data_frame[,'spp'])-1, "s_i"=data_frame[,'sitenum']-1, "t_i"=data_frame[,'year']-min(data_frame[,'year']), "a_k"=a_k, "Z_kl"=rbind(loc_x,matrix(0,ncol=2,nrow=MeshList$mesh$n-nrow(loc_x))), "spde"=NULL, "M0"=M0, "M1"=M1, "M2"=M2)
-    if(Version%in%c("spatial_vam_v14","spatial_vam_v13","spatial_vam_v12","spatial_vam_v11","spatial_vam_v10","spatial_vam_v9")) Data = list("Options_vec"=options_vec, "ObsModel_p"=obsmodel_p, "PenMult_z"=c(0,10), "n_i"=nrow(data_frame), "n_s"=length(unique(data_frame[,'sitenum'])), "n_t"=diff(range(data_frame[,'year']))+1, "n_k"=MeshList$mesh$n, "n_p"=length(unique(data_frame[,'spp'])), "n_r"=n_cointegrate, "n_j"=n_factors, "c_i"=data_frame[,'catch'], "p_i"=as.numeric(data_frame[,'spp'])-1, "s_i"=data_frame[,'sitenum']-1, "t_i"=data_frame[,'year']-min(data_frame[,'year']), "a_k"=a_k, "Z_kl"=rbind(as.matrix(loc_x),matrix(0,ncol=2,nrow=MeshList$mesh$n-nrow(loc_x))), "spde"=NULL, "M0"=M0, "M1"=M1, "M2"=M2)
+    if(Version%in%c("spatial_vam_v14","spatial_vam_v13","spatial_vam_v12","spatial_vam_v11","spatial_vam_v10","spatial_vam_v9")) Data = list("Options_vec"=options_vec, "ObsModel_p"=obsmodel_p, "PenMult_z"=c(1000,10), "n_i"=nrow(data_frame), "n_s"=length(unique(data_frame[,'sitenum'])), "n_t"=diff(range(data_frame[,'year']))+1, "n_k"=MeshList$mesh$n, "n_p"=length(unique(data_frame[,'spp'])), "n_r"=n_cointegrate, "n_j"=n_factors, "c_i"=data_frame[,'catch'], "p_i"=as.numeric(data_frame[,'spp'])-1, "s_i"=data_frame[,'sitenum']-1, "t_i"=data_frame[,'year']-min(data_frame[,'year']), "a_k"=a_k, "Z_kl"=rbind(as.matrix(loc_x),matrix(0,ncol=2,nrow=MeshList$mesh$n-nrow(loc_x))), "spde"=NULL, "M0"=M0, "M1"=M1, "M2"=M2)
     if("spde" %in% names(Data)) Data[['spde']] = list("n_s"=MeshList$spde$n.spde, "n_tri"=nrow(MeshList$mesh$graph$tv), "Tri_Area"=MeshList$Tri_Area, "E0"=MeshList$E0, "E1"=MeshList$E1, "E2"=MeshList$E2, "TV"=MeshList$TV-1, "G0"=MeshList$spde$param.inla$M0, "G0_inv"=inla.as.dgTMatrix(solve(MeshList$spde$param.inla$M0)) )
 
     # Changes necessary for 2D AR1 process
@@ -180,7 +180,7 @@ MakeInputs_Fn = function( Version, options_vec, obsmodel_p=NULL, loc_x, a_x, dat
     Map[["logsigma_pz"]] = factor( Map[["logsigma_pz"]] )
     Map[["delta_i"]] = factor( Map[["delta_i"]] )
     # Fix Alpha_pr and Beta_pr for the eigendecomposition method
-    if( Options_vec[["B_type"]]==1 ){
+    if( Options_vec[["B_type"]] %in% c(1) ){
       # Alpha_pr, fix first row at one, so that the magnitude of each eigenvector is not colinear with the eigenvalues
       Map[["Alpha_pr"]] = array(1:prod(dim(Params[["Beta_pr"]])), dim=dim(Params[["Beta_pr"]]))
       Map[["Alpha_pr"]][1,] = NA
@@ -193,7 +193,7 @@ MakeInputs_Fn = function( Version, options_vec, obsmodel_p=NULL, loc_x, a_x, dat
       Params[["Beta_pr"]] = array( ifelse(!is.na(Map[["Beta_pr"]]),-0.5,0), dim=dim(Params[["Beta_pr"]]))  # B = U%*%L%*%solve(U) + I_pp, so -1<=eigenvalues<=0
     }
     # Identifiability restrictions on Beta_pr for co-integration method
-    if( "Beta_pr"%in%names(Params) && Options_vec[["B_type"]]%in%c(0,2) ){
+    if( "Beta_pr"%in%names(Params) && Options_vec[["B_type"]]%in%c(0,2,4) ){
       Map[["Beta_pr"]] = factor(rbind( matrix(NA,nrow=Data$n_r,ncol=Data$n_r), matrix(seq_pos(Data$n_r*(Data$n_p-Data$n_r)),nrow=Data$n_p-Data$n_r,ncol=Data$n_r)))
     }
     if( "Beta_pr"%in%names(Params) && Options_vec[["B_type"]]%in%c(3) ){

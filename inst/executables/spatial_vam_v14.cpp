@@ -95,8 +95,8 @@ Type objective_function<Type>::operator() ()
 
   // Settings
   DATA_IVECTOR( Options_vec );
-  // Slot 0 -- Method for assembling B_pp
-  // Slot 1 -- include spatial variation in alpha
+  // Slot 0 -- Method for assembling B_pp (0=Cointegration; 1=Simple_eigen_cointegration;  2=Hybrid_eigen_cointegration;  3=Rescaled_cointegration)
+  // ResSlot 1 -- include spatial variation in alpha
   // Slot 2 -- option for diagonal covariance (i.e., independence among species)
   // Slot 3 -- equilibrium distribution; 0=start from stationary mean; 1=start from variation but not density dependence
   // Slot 4 -- method for spatial variation; 0=SPDE; 1=AR1 precision matrix
@@ -231,6 +231,44 @@ Type objective_function<Type>::operator() ()
     REPORT( L_pp );
     // Penalize colnorm_r
     if( Options_vec(0)==3 ) jnll_comp(3) += PenMult_z(1) * ( log(colnorm_r)*log(colnorm_r) ).sum();
+  }
+  // Rescaled co-integration
+  if( Options_vec(0)==4 ){
+
+    //matrix<Type> A;
+    //A.setZero();
+    //EigenSolver< matrix<Type> > es(A);
+    //es.eigenvalues();
+    //es.eigenvectors();
+
+    MatrixXd A = MatrixXd::Random(6,6);
+    EigenSolver<MatrixXd> es(A);
+    es.eigenvalues();
+    es.eigenvectors();
+
+    //EigenSolver< Matrix< Type > > es(B_pp);
+    //B_pp.eigenvectors();
+
+
+    B_pp = Alpha_pr * Beta_rp + Identity_pp;
+    // Extract eigenvalues
+    vector< std::complex< Type > > eigenvalues_B_pp = B_pp.eigenvalues();
+    vector< Type > real_eigenvalues_B_pp = eigenvalues_B_pp.real();
+    vector< Type > imag_eigenvalues_B_pp = eigenvalues_B_pp.imag();
+    vector< Type > mod_eigenvalues_B_pp( n_p );
+    // Calculate maximum eigenvalues
+    Type MaxEigen = 1;
+    for(int p=0; p<n_p; p++){
+      mod_eigenvalues_B_pp(p) = pow( pow(real_eigenvalues_B_pp(p),2) + pow(imag_eigenvalues_B_pp(p),2), 0.5 );
+      MaxEigen = CppAD::CondExpGt(mod_eigenvalues_B_pp(p), MaxEigen, mod_eigenvalues_B_pp(p), MaxEigen);
+    }
+    // Rescale interaction matrix
+    B_pp = B_pp / MaxEigen;
+    REPORT( real_eigenvalues_B_pp );
+    REPORT( imag_eigenvalues_B_pp );
+    REPORT( MaxEigen );
+    REPORT( mod_eigenvalues_B_pp );
+    jnll_comp(3) += PenMult_z(0) * CppAD::CondExpGe( MaxEigen, Type(1.0), pow(MaxEigen-Type(1.0),2), Type(0.0) );
   }
 
   // Penalize unstable interaction matrices
