@@ -234,22 +234,6 @@ Type objective_function<Type>::operator() ()
   }
   // Rescaled co-integration
   if( Options_vec(0)==4 ){
-
-    //matrix<Type> A;
-    //A.setZero();
-    //EigenSolver< matrix<Type> > es(A);
-    //es.eigenvalues();
-    //es.eigenvectors();
-
-    MatrixXd A = MatrixXd::Random(6,6);
-    EigenSolver<MatrixXd> es(A);
-    es.eigenvalues();
-    es.eigenvectors();
-
-    //EigenSolver< Matrix< Type > > es(B_pp);
-    //B_pp.eigenvectors();
-
-
     B_pp = Alpha_pr * Beta_rp + Identity_pp;
     // Extract eigenvalues
     vector< std::complex< Type > > eigenvalues_B_pp = B_pp.eigenvalues();
