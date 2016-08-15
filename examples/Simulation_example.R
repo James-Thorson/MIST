@@ -39,6 +39,7 @@ Version = "spatial_vam_v13"
 # v11 -- switched logkappa to logkappa_z, where slots 0 through n_p-1 control range for spatial variation, and slot n_p controls range for spatio-temporal (SDFA) variation
 # v12 -- changed eigen-cointegration parameterization slightly to hopefully improve convergence during simulation experiment
 # v13 -- changed eigen-cointegration parameterization again to hopefully improve convergence during simulation experiment
+# v14 -- Added 2D AR1 option for spatial and spatio-temporal correlations
 
 # Other settings
 Nfactors = 4        # Number of dynamic factors in process error

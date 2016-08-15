@@ -6,4 +6,15 @@ Date: 2015-09-03
 Author: Who wrote it
 Maintainer: James Thorson <James.Thorson@noaa.gov>
 Description: More about what it does (maybe more than one line)
+Imports: 
+    utils,
+    stats,
+    RANN,
+    RandomFields,
+    TMB  
+Depends: 
+    R (>= 3.1.0),
+Suggests: 
+    INLA,
+    testthat
 License: What license is it under?

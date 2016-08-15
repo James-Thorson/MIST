@@ -3,8 +3,8 @@
 Sim_Fn <-
 function( n_species=4, n_years=20, n_years_burnin=0, n_stations=25, n_samp_per_station=1, n_knots=n_stations, start_from_equilibrium=TRUE, B_pp=NULL, ObsModel="Poisson", Cov_pp=NULL, B_params=c(0,0.2), phi_p=NULL, sdlog=0.1, SpatialScale=0.1, SD_A=0.5, SD_E=0.2, corr_E=0.5, rho=0.8, logMeanDens=1, RandomSeed=NA, Loc=NULL ){
   if( !is.na(RandomSeed) ) set.seed(RandomSeed) 
-  require( RandomFields )
-  require( RANN )
+  #require( RandomFields )
+  #require( RANN )
 
   # Covariance
   if( is.null(Cov_pp) ){
@@ -27,8 +27,8 @@ function( n_species=4, n_years=20, n_years_burnin=0, n_stations=25, n_samp_per_s
   # Range = distance at which Correlation is approx. 0.1
   # Scale = Range/2
   if( is.null(Loc) ) Loc = cbind( "x"=runif(n_stations, min=0,max=1), "y"=runif(n_stations, min=0,max=1) )
-  model_A <- RMgauss(var=SD_A^2, scale=SpatialScale)
-  model_E <- RMgauss(var=1, scale=SpatialScale)     # Unit variance, so variance enters via Cov_pp (I confirmed that var input to RMgauss is the marginal variance)
+  model_A <- RandomFields::RMgauss(var=SD_A^2, scale=SpatialScale)
+  model_E <- RandomFields::RMgauss(var=1, scale=SpatialScale)     # Unit variance, so variance enters via Cov_pp (I confirmed that var input to RMgauss is the marginal variance)
 
   # Alpha
   alpha_p = (diag(Nspecies)-B_pp) %*% rep(logMeanDens,n_species)
@@ -36,7 +36,7 @@ function( n_species=4, n_years=20, n_years_burnin=0, n_stations=25, n_samp_per_s
   # Simulate Alpha
   A_sp = matrix(NA, nrow=n_stations, ncol=n_species)
   for(p in 1:n_species){
-    A_sp[,p] = RFsimulate(model=model_A, x=Loc[,'x'], y=Loc[,'y'])@data[,1]
+    A_sp[,p] = RandomFields::RFsimulate(model=model_A, x=Loc[,'x'], y=Loc[,'y'])@data[,1]
     A_sp[,p] = A_sp[,p] - mean(A_sp[,p]) + alpha_p[p]
   }
   
@@ -52,7 +52,7 @@ function( n_species=4, n_years=20, n_years_burnin=0, n_stations=25, n_samp_per_s
   D_stj = array(NA, dim=c(n_stations,n_years+n_years_burnin,n_species))
   E_stp = array(NA, dim=c(n_stations,n_years+n_years_burnin,n_species))
   for(t in 1:(n_years+n_years_burnin)){
-    for(j in 1:n_species) D_stj[,t,j] = RFsimulate(model=model_E, x=Loc[,'x'], y=Loc[,'y'])@data[,1]
+    for(j in 1:n_species) D_stj[,t,j] = RandomFields::RFsimulate(model=model_E, x=Loc[,'x'], y=Loc[,'y'])@data[,1]
     E_stp[,t,] = D_stj[,t,] %*% t(L_pj)
   }
   # Sanity check on marginal process error variance: mean(apply(SimList$D_stj, MARGIN=2:3, FUN=function(vec){mean(vec^2)}))
@@ -124,7 +124,7 @@ function( n_species=4, n_years=20, n_years_burnin=0, n_stations=25, n_samp_per_s
 
   # Change to number of knots
   if( n_knots<n_stations ){
-    Kmeans = kmeans( x=Loc, centers=n_knots, iter.max=100, nstart=25, trace=0)
+    Kmeans = stats::kmeans( x=Loc, centers=n_knots, iter.max=100, nstart=25, trace=0)
     Loc = Kmeans$centers
     DF$sitenum = Kmeans$cluster[ DF$sitenum ]
   }
