@@ -7,7 +7,7 @@
 #devtools::install_github("james-thorson/spatial_DFA")
 
 TmbDir = system.file("executables", package="SpatialVAM")
-  #TmbDir = "C:/Users/James.Thorson/Desktop/Project_git/spatial_VAM/inst/executables/"
+  #TmbDir = "C:/Users/James.Thorson/Desktop/Project_git/SpatialVAM/inst/executables/"
 
 # load libraries
 library( TMB )

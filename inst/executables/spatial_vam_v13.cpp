@@ -424,6 +424,7 @@ Type objective_function<Type>::operator() ()
   // Calculate indices
   array<Type> Index_ktp(n_k, n_t, n_p);
   matrix<Type> Index_tp(n_t, n_p);
+  matrix<Type> ln_Index_tp(n_t, n_p);
   Index_tp.setZero();
   for(int k=0; k<n_k; k++){
   for(int t=0; t<n_t; t++){
@@ -431,8 +432,10 @@ Type objective_function<Type>::operator() ()
     Index_ktp(k,t,p) = exp( d_ktp(k,t,p) ) * a_k(k) / 1000;  // Convert from kg to metric tonnes
     Index_tp(t,p) += Index_ktp(k,t,p); 
   }}}
+  ln_Index_tp = log( Index_tp );
   REPORT( Index_tp );
   ADREPORT( Index_tp );
+  ADREPORT( ln_Index_tp );
 
   // Calculate other derived summaries
   // Each is the weighted-average X_xl over polygons (x) with weights equal to abundance in each polygon and time
