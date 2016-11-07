@@ -460,13 +460,14 @@ Type objective_function<Type>::operator() ()
   matrix<Type> Index_tp(n_t, n_p);
   matrix<Type> ln_Index_tp(n_t, n_p);
   Index_tp.setZero();
-  for(int k=0; k<n_k; k++){
   for(int t=0; t<n_t; t++){
   for(int p=0; p<n_p; p++){
-    Index_ktp(k,t,p) = exp( d_ktp(k,t,p) ) * a_k(k) / 1000;  // Convert from kg to metric tonnes
-    Index_tp(t,p) += Index_ktp(k,t,p); 
-  }}}
-  ln_Index_tp = log( Index_tp );
+    for(int k=0; k<n_k; k++){
+      Index_ktp(k,t,p) = exp( d_ktp(k,t,p) ) * a_k(k) / 1000;  // Convert from kg to metric tonnes
+      Index_tp(t,p) += Index_ktp(k,t,p);
+    }
+    ln_Index_tp(t,p) = log( Index_tp(t,p) );
+  }}
   REPORT( Index_tp );
   ADREPORT( Index_tp );
   ADREPORT( ln_Index_tp );

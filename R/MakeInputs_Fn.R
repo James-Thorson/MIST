@@ -1,7 +1,8 @@
 
-MakeInputs_Fn = function( Version, options_vec, obsmodel_p=NULL, loc_x, a_x, data_frame, n_cointegrate=NULL, n_factors=1, use_REML=FALSE, independentTF=FALSE, estimate_phi=TRUE ){
+MakeInputs_Fn = function( Version, options_vec, obsmodel_p=NULL, loc_x, a_x, data_frame, n_cointegrate=NULL, n_factors=1,
+  use_REML=FALSE, independentTF=FALSE, estimate_phi=TRUE ){
 
-  # 
+  # Local functions
   rmatrix = function(nrow, ncol, mean=0, sd=1, diag=NA){
     Return = matrix(rnorm(nrow*ncol,mean=mean,sd=sd), nrow=nrow, ncol=ncol)
     if( !is.na(diag)) Return[cbind(1:min(nrow,ncol),1:min(nrow,ncol))] = diag
@@ -131,7 +132,7 @@ MakeInputs_Fn = function( Version, options_vec, obsmodel_p=NULL, loc_x, a_x, dat
 
     # Parameters
     if(Version=="spatial_vam_v1") Params = list("Hinput_z"=c(0,0), "logkappa"=log(1), "alpha_p"=rep(0,Data$n_p), "phi_p"=rep(0,Data$n_p), "logtauA_p"=rep(0,Data$n_p), "L_val"=rnorm(Data$n_j*Data$n_p-Data$n_j*(Data$n_j-1)/2), "B_pp"=matrix(rnorm(Data$n_p^2,sd=0.1),Data$n_p,Data$n_p), "d_ktp"=array(2,dim=unlist(Data[c('n_k','n_t','n_p')])), "Ainput_kp"=matrix(0,nrow=Data$n_k,ncol=Data$n_p))
-    if(Version%in%c("spatial_vam_v3","spatial_vam_v2")) Params = list("Hinput_z"=c(0,0), "logkappa"=log(1), "alpha_p"=rep(0,Data$n_p), "phi_p"=rep(0,Data$n_p), "logtauA_p"=rep(0,Data$n_p), "L_val"=ifelse( is.na(fixdiag(Nrow=Data$n_p, Ncol=Data$n_j)), 1, 0), "B_pp"=diag(0.5,Data$n_p), "logsigma_pz"=matrix(0,nrow=Data$n_p,1), "d_ktp"=abind(SimList$d_stp,array(0,dim=c(Data$n_k-Data$n_s,Data$n_t,Data$n_p)),along=1), "Ainput_kp"=matrix(0,nrow=Data$n_k,ncol=Data$n_p))      # "d_ktp"=array(2,dim=unlist(Data[c('n_k','n_t','n_p')]))
+    if(Version%in%c("spatial_vam_v3","spatial_vam_v2")) Params = list("Hinput_z"=c(0,0), "logkappa"=log(1), "alpha_p"=rep(0,Data$n_p), "phi_p"=rep(0,Data$n_p), "logtauA_p"=rep(0,Data$n_p), "L_val"=ifelse( is.na(fixdiag(Nrow=Data$n_p, Ncol=Data$n_j)), 1, 0), "B_pp"=diag(0.5,Data$n_p), "logsigma_pz"=matrix(0,nrow=Data$n_p,1), "d_ktp"=abind::abind(SimList$d_stp,array(0,dim=c(Data$n_k-Data$n_s,Data$n_t,Data$n_p)),along=1), "Ainput_kp"=matrix(0,nrow=Data$n_k,ncol=Data$n_p))      # "d_ktp"=array(2,dim=unlist(Data[c('n_k','n_t','n_p')]))
     if(Version%in%c("spatial_vam_v4")) Params = list("Hinput_z"=c(0,0), "logkappa"=log(1), "alpha_p"=rep(0,Data$n_p), "phi_p"=rep(0,Data$n_p), "logtauA_p"=rep(0,Data$n_p), "L_val"=ifelse( is.na(fixdiag(Nrow=Data$n_p, Ncol=Data$n_j)), 1, 0), "B_pp"=diag(0.5,Data$n_p), "logsigma_pz"=matrix(0,nrow=Data$n_p,2), "d_ktp"=array(0,dim=c(Data$n_k,Data$n_t,Data$n_p)), "Ainput_kp"=matrix(0,nrow=Data$n_k,ncol=Data$n_p))      # "d_ktp"=array(2,dim=unlist(Data[c('n_k','n_t','n_p')]))
     if(Version%in%c("spatial_vam_v7","spatial_vam_v6","spatial_vam_v5")) Params = list("Hinput_z"=c(0,0), "logkappa"=log(1), "alpha_p"=rep(0,Data$n_p), "phi_p"=rep(0,Data$n_p), "logtauA_p"=rep(0,Data$n_p), "L_val"=ifelse( is.na(fixdiag(Nrow=Data$n_p, Ncol=Data$n_j)), 1, 0), "B_pp"=diag(0.5,Data$n_p), "logsigma_pz"=matrix(0,nrow=Data$n_p,2), "d_ktp"=array(0,dim=c(Data$n_k,Data$n_t,Data$n_p)), "Ainput_kp"=matrix(0,nrow=Data$n_k,ncol=Data$n_p), "delta_i"=rep(0,Data$n_i))      # "d_ktp"=array(2,dim=unlist(Data[c('n_k','n_t','n_p')]))
     if(Version%in%c("spatial_vam_v9","spatial_vam_v8")) Params = list("Hinput_z"=c(0,0), "logkappa"=log(1), "alpha_p"=rep(0,Data$n_p), "phi_p"=rep(0,Data$n_p), "logtauA_p"=rep(0,Data$n_p), "L_val"=ifelse( is.na(fixdiag(Nrow=Data$n_p, Ncol=Data$n_j)), 1, 0), "Alpha_pr"=rbind(diag(-0.5,Data$n_r),rmatrix(nrow=Data$n_p-Data$n_r,ncol=Data$n_r,sd=0.01)), "Beta_pr"=rbind(diag(Data$n_r),rmatrix(nrow=Data$n_p-Data$n_r,ncol=Data$n_r,sd=0.2)), "logsigma_pz"=matrix(0,nrow=Data$n_p,2), "d_ktp"=array(0,dim=c(Data$n_k,Data$n_t,Data$n_p)), "Ainput_kp"=matrix(0,nrow=Data$n_k,ncol=Data$n_p), "delta_i"=rep(0,Data$n_i))      # "d_ktp"=array(2,dim=unlist(Data[c('n_k','n_t','n_p')]))
