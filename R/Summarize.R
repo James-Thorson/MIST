@@ -1,4 +1,9 @@
-calc_derived_quants = function( Report, SD, InputList, SimList=NULL, species_names=NULL ){
+#' Summarize model outputs
+#'
+#' \code{Summarize} calculates useful outputs
+#'
+#' @export
+Summarize = function( Report, SD, InputList, SimList=NULL, species_names=NULL ){
 
   # Local function to extract standard errors in useful way
   SE_hat_fn = function( SD, Report, Map=NULL, parname){

@@ -1,11 +1,19 @@
-#n_species=4; n_years=20; n_stations=25; B_pp=NULL; ObsModel="Poisson"; Cov_pp=NULL; phi_p=NULL; sdlog=0.1; SpatialScale=0.1; SD_A=0.5; SD_E=0.2; corr_E=0.5; rho=0.8; logMeanDens=1; RandomSeed=NA; Loc=NULL
-#n_species=Nspecies; n_years=20; n_stations=30; phi_p=rep(0,Nspecies); SpatialScale=0.4; rho=0.5; SD_A=0.5; SD_E=0.2; corr_E=0.5; ObsModel=ObsModel 
+
+#' Simulate data
+#'
+#' \code{Sim_Fn} simulates data from the data-generating process used in the SpatialVAM model
+#'
+#' @export
+
 Sim_Fn <-
 function( n_species=4, n_years=20, n_years_burnin=0, n_stations=25, n_samp_per_station=1, n_knots=n_stations, start_from_equilibrium=TRUE,
   B_pp=NULL, ObsModel="Poisson", Cov_pp=NULL, B_params=c(0,0.2), phi_p=NULL, sdlog=0.1, SpatialScale=0.1, SD_A=0.5, SD_E=0.2, corr_E=0.5,
   rho=0.8, logMeanDens=1, RandomSeed=NA, Loc=NULL ){
 
-  if( !is.na(RandomSeed) ) set.seed(RandomSeed) 
+  #n_species=4; n_years=20; n_stations=25; B_pp=NULL; ObsModel="Poisson"; Cov_pp=NULL; phi_p=NULL; sdlog=0.1; SpatialScale=0.1; SD_A=0.5; SD_E=0.2; corr_E=0.5; rho=0.8; logMeanDens=1; RandomSeed=NA; Loc=NULL
+  #n_species=Nspecies; n_years=20; n_stations=30; phi_p=rep(0,Nspecies); SpatialScale=0.4; rho=0.5; SD_A=0.5; SD_E=0.2; corr_E=0.5; ObsModel=ObsModel
+
+  if( !is.na(RandomSeed) ) set.seed(RandomSeed)
   #require( RandomFields )
   #require( RANN )
 

@@ -1,20 +1,24 @@
 Package: SpatialVAM
 Type: Package
-Title: What the package does (short line)
+Title: Spatial vector autoregressive model
 Version: 1.0
 Date: 2015-09-03
-Author: Who wrote it
+Author: James Thorson
 Maintainer: James Thorson <James.Thorson@noaa.gov>
-Description: More about what it does (maybe more than one line)
+Description: Package for estimating parameters of a spatial vector autoregressive model, used to estimate interactions among species via spatio-temporal modeling.
 Imports: 
+    graphics,
     utils,
     stats,
     RANN,
     RandomFields,
+    RandomFieldsUtils,
     TMB  
 Depends: 
     R (>= 3.1.0),
 Suggests: 
     INLA,
     testthat
-License: What license is it under?
+License: GPL-2
+URL: http://github.com/James-Thorson/SpatialVAM
+BugReports: http://github.com/James-Thorson/SpatialVAM/issues

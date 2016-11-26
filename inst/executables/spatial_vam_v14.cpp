@@ -270,13 +270,14 @@ Type objective_function<Type>::operator() ()
     REPORT( imag_eigenvalues_B_pp );
   }
 
-  // Covariance via trimmed Cholesky
+  // Covariance for process error
   matrix<Type> L_pj(n_p, n_j);
   matrix<Type> L_jp(n_j, n_p);
   L_pj.setZero();
   matrix<Type> Cov_pp(n_p, n_p);
   Cov_pp.setZero();
   int Count = 0;
+  // Trimmed-Cholesky "factor model"
   if( Options_vec(2)==0 ){
     // Assemble the loadings matrix (lower-triangular, loop through rows then columns)
     for(int j=0; j<n_j; j++){
@@ -290,7 +291,7 @@ Type objective_function<Type>::operator() ()
     L_jp = L_pj.transpose();
     Cov_pp = L_pj*L_jp + Type(0.000001)*Identity_pp;  // additive constant to make Cov_pp invertible
   }
-  // Diagonal covariance 
+  // Independent among species
   if( Options_vec(2)==1 ){
     for(int p=0; p<n_p; p++){
       Cov_pp(p,p) = exp( L_val(p) );
@@ -306,10 +307,12 @@ Type objective_function<Type>::operator() ()
   for(int p=0; p<n_p; p++){
     logtauA_p(p) = 0.5*log(4*M_PI) - logMargSigmaA_p(p) - logkappa_z(p);
     Range_pz(p,0) = sqrt(8) / exp( logkappa_z(p) );
+    // Not independent
     if( Options_vec(2)==0 ){
       logtauE_p(p) = log(1/( exp(logkappa_z(n_p)) * sqrt(4*M_PI)) );
       Range_pz(p,1) = sqrt(8) / exp( logkappa_z(n_p) );
     }
+    // Independent among species
     if( Options_vec(2)==1 ){
       logtauE_p(p) = log(1/( exp(logkappa_z(p)) * sqrt(4*M_PI)) );
       Range_pz(p,1) = sqrt(8) / exp( logkappa_z(p) );
@@ -330,15 +333,18 @@ Type objective_function<Type>::operator() ()
     A_kp(k,p) = Ainput_kp(k,p)/exp(logtauA_p(p)) + alpha_p(p);
   }}
 
-  // Calculate mean of stationary distribution
+  // Calculate mean of stationary distribution if starting from equilibrium
   matrix<Type> TempMat_pp(n_p, n_p);
   matrix<Type> dinf_kp(n_k, n_p);
-  TempMat_pp.setIdentity();
-  TempMat_pp = TempMat_pp - B_pp;
-  TempMat_pp = atomic::matinv( TempMat_pp );
-  dinf_kp = A_kp * TempMat_pp.transpose();   // saves a transpose relative to t(Temp_pp * t(A_kp))
-  
-  // Calculate predicted density given stochastic process
+  if( Options_vec(3)==0 ){
+    TempMat_pp.setIdentity();
+    TempMat_pp = TempMat_pp - B_pp;
+    TempMat_pp = atomic::matinv( TempMat_pp );
+    dinf_kp = A_kp * TempMat_pp.transpose();   // saves a transpose relative to t(Temp_pp * t(A_kp))
+    REPORT( dinf_kp );
+  }
+
+  // Calculate predicted density in year t+1 given model and density in year t
   vector<Type> tmp1_p(n_p);
   vector<Type> tmp2_p(n_p);
   array<Type> dhat_ktp(n_k, n_t, n_p);
@@ -520,7 +526,6 @@ Type objective_function<Type>::operator() ()
   REPORT( MargSigmaA_p );
   REPORT( L_pj );
   // Fields
-  REPORT( dinf_kp );
   REPORT( A_kp );
   REPORT( d_ktp );
   REPORT( dhat_ktp );
