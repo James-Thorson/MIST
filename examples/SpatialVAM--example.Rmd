@@ -1,0 +1,260 @@
+---
+title: Example script for SpatialVAM for spatio-temporal analysis of species interactions
+  data
+author: "James Thorson"
+date: "October 26, 2016"
+output:
+  pdf_document:
+    fig_caption: yes
+    number_sections: yes
+    toc: yes
+  html_document:
+    number_sections: yes
+    toc: yes
+html_document:
+  toc: yes
+---
+
+
+```{r set_options, echo=FALSE, message=FALSE, warning=FALSE, results="hide"}
+# Width should apply to tidy
+# digits hopefully affects number of digits when using print
+options(width=50, width.cutoff=50, digits = 3) 
+install.packages("pander", repos="http://cran.us.r-project.org")
+```
+
+```{r wrap-hook, echo=FALSE}
+# FROM: https://github.com/yihui/knitr-examples/blob/master/077-wrap-output.Rmd
+library(knitr)
+hook_output = knit_hooks$get('output')
+knit_hooks$set(output = function(x, options) {
+  # this hook is used only when the linewidth option is not NULL
+  if (!is.null(n <- options$linewidth)) {
+    x = knitr:::split_lines(x)
+    # any lines wider than n should be wrapped
+    if (any(nchar(x) > n)) x = strwrap(x, width = n)
+    x = paste(x, collapse = '\n')
+  }
+  hook_output(x, options)
+})
+# TRIGGERED USING `linewidth=60`
+```
+
+
+# Overview
+This tutorial will walk through a simple example of how to use `SpatialVAM` for estimating species interactions.
+
+# Getting started
+
+To install TMB on a windows machine, we need to first install [Rtools](https://cran.r-project.org/bin/windows/Rtools/).  During the installation, please select the option to have Rtools included in your system path.  On other operating systems, it is not necessary to install Rtools.  We then install `VAST`.  
+```{r load_packages, message=FALSE, eval=FALSE}
+devtools::install_github("james-thorson/SpatialVAM") 
+```
+
+We also install `FishData`, which is used to download data for our example
+```{r load_other_packages, message=FALSE}
+devtools::install_github("james-thorson/FishData")
+```
+
+Next load libraries.
+```{r load_libraries, message=FALSE}
+library(TMB)               # Can instead load library(TMBdebug)
+library(SpatialVAM)
+```
+
+## Further information
+
+If you have further questions after reading this tutorial, please explore the [GitHub repo](https://github.com/james-thorson/SpatialVAM/#description) mainpage, wiki, and glossary.  Also please explore the R help files, e.g., e.g., `?Data_Fn` for explanation of data inputs, or `?Param_Fn` for explanation of parameters.
+
+## Related tools
+
+Related tools for spatio-temporal fisheries analysis are currently housed at [www.FishStats.org](http://www.FishStats.org).  These include [VAST](https://github.com/james-thorson/VAST/#description), a a multispecies model for estimating abundance using delta-models, and [www.FishViz.org](http://www.FishViz.org), a tool for visualizing single-species results using worldwide. `VAST` and `SpatialDeltaGLMM` both use continuous integration to confirm that they give identical estimates when applied to single-species data.  
+
+## How to cite SpatialVAM
+
+`SpatialVAM` has involved many publications for developing individual features.  If using `SpatialVAM`, please read and cite:
+
+```{r citation, tidy=TRUE, width=70, width.cutoff=70}
+citation("SpatialVAM")
+```
+
+and also browse the [GitHub list](https://github.com/james-thorson/SpatialVAM/#description-of-package) of papers.
+
+# Settings
+We use latest version for CPP code
+```{r}
+Version = "spatial_vam_v14"
+```
+
+## Spatial settings
+The following settings define the spatial resolution for the model, and whether to use a grid or mesh approximation
+```{r}
+n_x = c(50, 100)[1] # Number of stations
+Kmeans_Config = list( "randomseed"=1, "nstart"=100, "iter.max"=1e3 )    
+```
+
+## Model settings
+The following settings define whether to include spatial and spatio-temporal variation, the rank of this covariance among species, whether its autocorrelated, and whether there's overdispersion
+```{r, tidy=TRUE}
+Nfactors_est = 3        # Number of dynamic factors in process error
+Ncointegrate = 3
+Use_REML = FALSE
+Estimate_Phi = TRUE   # Phi is the offset of initial and equilibrium abundance
+StartFromEquilibriumTF = FALSE    
+B_type = c("Independent", "Real_eigenvalue", "Complex_eigenvalue")[3]
+Kappa = c("constant", "spatial_vs_spatiotemporal", "different")[1]  
+EigenBounds = c("Lower"=-2, "Upper"=-0.001)
+ObsModel = c("Poisson", "LNP", "ZILN")[3]
+```
+
+## Stratification for results
+
+We also define any potential stratification of results, and settings specific to any case-study data set
+```{r define_strata, tidy=TRUE, linewidth=50}
+strata.limits <- data.frame('STRATA'="All_areas")
+```
+
+## Derived objects
+
+In this case, we'll use publicly available data for three groundfishes in the Eastern Bering Sea, so we set `Region` and `Species_set` accordingly.  `Region` is used to define both the database for downloading data, as well as the region for extrapolation density, while `Species_set` is only used when downloading data.  
+```{r define_region, tidy=FALSE}
+Region = "Eastern_Bering_Sea"
+Species_set = c("Atheresthes stomias","Gadus chalcogrammus","Hippoglossoides elassodon") 
+```
+
+## Save settings
+
+We then set the location for saving files.
+```{r make_dir, message=FALSE, warning=FALSE}
+DateFile = paste0(getwd(),'/SpatialVAM_output/')
+  dir.create(DateFile)
+```
+
+# Prepare the data
+
+## Data-frame for catch-rate data
+
+We then download data for three species using `FishData`.  
+```{r load_data, echo=TRUE, message=FALSE, tidy=TRUE}
+DF = FishData::download_catch_rates(survey="Eastern_Bering_Sea", species_set=Species_set)
+Data_Geostat = cbind( "spp"=DF[,"Sci"], "Year"=DF[,"Year"], "Catch_KG"=DF[,"Wt"], "AreaSwept_km2"=0.01, "Vessel"=0, "Lat"=DF[,"Lat"], "Lon"=DF[,"Long"] )
+```
+
+The data is formatted as shown here, with head...
+```{r show_data_head, results="asis", echo=FALSE}
+pander::pandoc.table( head(Data_Geostat), digits=3 )
+```
+
+... and tail
+```{r show_data_tail, results="asis", echo=FALSE}
+pander::pandoc.table( tail(Data_Geostat), digits=3 )
+```
+
+## Extrapolation grid
+
+We also generate the extrapolation grid appropriate for a given region.  For new regions, we use `Region="Other"`.
+```{r extrapolation_grid, message=FALSE, tidy=TRUE, linewidth=60}
+Extrapolation_List = SpatialDeltaGLMM::Prepare_Extrapolation_Data_Fn( Region=Region, strata.limits=strata.limits )
+```
+
+## Derived objects for spatio-temporal estimation
+
+And we finally generate the information used for conducting spatio-temporal parameter estimation, bundled in list `Spatial_List`
+```{r spatial_information, message=FALSE, warning=FALSE, tidy=TRUE, linewidth=60}
+Spatial_List = SpatialDeltaGLMM::Spatial_Information_Fn( grid_size_km=100, n_x=n_x, Method="Mesh", Lon=Data_Geostat[,'Lon'], Lat=Data_Geostat[,'Lat'], Extrapolation_List=Extrapolation_List, randomseed=Kmeans_Config[["randomseed"]], nstart=Kmeans_Config[["nstart"]], iter.max=Kmeans_Config[["iter.max"]], DirPath=DateFile )
+# Add knots to Data_Geostat
+Data_Geostat = cbind( Data_Geostat, Spatial_List$loc_UTM, "knot_i"=Spatial_List$knot_i )
+```
+
+# Build and run model
+
+## Build model
+
+To estimate parameters, we first build a list of data-inputs used for parameter estimation.  `Data_Fn` has some simple checks for buggy inputs, but also please read the help file `?Data_Fn`.  
+```{r build_data, message=FALSE, tidy=TRUE, linewidth=60, results="hide"}
+ObsModel_p = rep( switch(ObsModel,"Poisson"=0, "Lognormal"=1, "ZILN"=2, "LNP"=3), length(unique(Data_Geostat[,'spp'])) )
+
+TmbData = Data_Fn( "Version"=Version, "obsmodel_p"=ObsModel_p, "n_cointegrate"=Ncointegrate, "b_i"=Data_Geostat[,'Catch_KG'], "s_i"=Data_Geostat[,'knot_i'], "t_i"=Data_Geostat[,'Year'], "p_i"=Data_Geostat[,'spp'], "a_x"=Spatial_List$a_xl[,1], "B_type"=B_type, "startFromEquilibriumTF"=FALSE, "spatial_method"=0, "MeshList"=Spatial_List$MeshList, "n_factors"=Nfactors_est )
+```
+
+We then build the TMB object.
+```{r build_object, message=FALSE, results="hide", tidy=TRUE}
+TmbList = Build_TMB_Fn( "TmbData"=TmbData, "Version"=Version, "use_REML"=ifelse(is.na(Use_REML),TRUE,Use_REML), "loc_x"=Spatial_List$MeshList$loc_x, "estimate_phi"=Estimate_Phi, "Kappa"=Kappa, "eigenbounds"=EigenBounds, "RunDir"=DateFile )
+obj = TmbList$Obj                            # "Parameters"=InputList$TmbParams,
+```
+
+## Estimate fixed effects and predict random effects
+
+Next, we use a gradient-based nonlinear minimizer to identify maximum likelihood estimates for fixed-effects
+```{r estimate_parameters, results="hide", tidy=TRUE}
+Opt = TMBhelper::Optimize( obj=obj, lower=TmbList$Lower, upper=TmbList$Upper, getsd=TRUE, savedir=DateFile, newtonsteps=3 )
+```
+
+Finally, we bundle and save output
+```{r save_results, linewidth=60}
+Report = obj$report()
+ParHat = obj$env$parList()
+```
+
+# Diagnostic plots
+
+We first apply a set of standard model diagnostics to confirm that the model is reasonable and deserves further attention.  If any of these do not look reasonable, the model output should not be interpreted or used.
+
+## Plot data
+
+It is always good practice to conduct exploratory analysis of data.  Here, I visualize the spatial distribution of data.  Spatio-temporal models involve the assumption that the probability of sampling a given location is statistically independent of the probability distribution for the response at that location.  So if sampling "follows" changes in density, then the model is probably not appropriate!
+```{r explore_data, results="hide", tidy=TRUE, message=FALSE, warning=FALSE}
+SpatialDeltaGLMM::Plot_data_and_knots(Extrapolation_List=Extrapolation_List, Spatial_List=Spatial_List, Data_Geostat=Data_Geostat, PlotDir=DateFile )
+```
+![Spatial extent and location of knots](SpatialVAM_output/Data_and_knots.png) 
+
+![Spatial distribution of catch-rate data](SpatialVAM_output/Data_by_year.png) 
+
+## Convergence
+Here I print the diagnostics generated during parameter estimation, and I confirm that (1) no parameter is hitting an upper or lower bound and (2) the final gradient for each fixed-effect is close to zero. For explanation of parameters, please see `?Data_Fn`.
+```{r print_results, results="asis"}
+pander::pandoc.table( Opt$diagnostics[,c('Param','Lower','MLE','Upper','final_gradient')] ) 
+```
+
+## Model selection
+
+To select among models, we recommend using the Akaike Information Criterion, AIC, via `Opt$AIC=` ``r Opt$AIC``. 
+
+# Model output
+
+Last but not least, we generate useful plots by first determining which years to plot (`Years2Include`), and labels for each plotted year (`Year_Set`)
+```{r plot_years}
+Year_Set = min(DF[,'Year']):max(DF[,'Year'])
+```
+
+We then run a set of pre-defined plots for visualizing results
+
+## Density surface for each year
+
+We can visualize many types of output from the model.  Here I only show predicted density, but other options are obtained via other integers passed to `plot_set` as described in `?PlotResultsOnMap_Fn`
+```{r plot_density, message=FALSE, warning=FALSE, tidy=TRUE, linewidth=50}
+# Get region-specific settings for plots
+MapDetails_List = SpatialDeltaGLMM::MapDetails_Fn( "Region"=Region, "NN_Extrap"=Spatial_List$PolygonList$NN_Extrap, "Extrapolation_List"=Extrapolation_List )
+# Plot maps representing density or other variables
+SpatialDeltaGLMM::PlotResultsOnMap_Fn(plot_set=c(3), MappingDetails=MapDetails_List[["MappingDetails"]], Report=Report, Sdreport=Opt$SD, PlotDF=MapDetails_List[["PlotDF"]], MapSizeRatio=MapDetails_List[["MapSizeRatio"]], Xlim=MapDetails_List[["Xlim"]], Ylim=MapDetails_List[["Ylim"]], FileName=DateFile, category_names=unique(DF$Sci), Year_Set=Year_Set, Rotate=MapDetails_List[["Rotate"]], Cex=MapDetails_List[["Cex"]], Legend=MapDetails_List[["Legend"]], zone=MapDetails_List[["Zone"]], mar=c(0,0,2,0), oma=c(3.5,3.5,0,0), cex=1.8)
+```
+![Density maps for each year for arrowtooth flounder](SpatialVAM_output/Dens--Atheresthes_stomias.png) 
+
+![Density maps for each year for Alaska pollock](SpatialVAM_output/Dens--Gadus_chalcogrammus.png) 
+
+## Index of abundance
+
+The index of abundance is generally most useful for stock assessment models.
+```{r plot_index, message=FALSE, tidy=TRUE, linewidth=50, results="asis"}
+Index = SpatialDeltaGLMM::PlotIndex_Fn( DirName=DateFile, TmbData=TmbData, Sdreport=Opt$SD, Year_Set=min(Data_Geostat[,'Year']):max(Data_Geostat[,'Year']), Years2Include=which(min(Data_Geostat[,'Year']):max(Data_Geostat[,'Year'])%in%sort(unique(Data_Geostat[,'Year']))), strata_names=names(strata.limits)[1], category_names=levels(DF[,'Sci']), use_biascorr=TRUE )
+pander::pandoc.table( Index$Table[,c("Category","Year","Estimate_metric_tons","SD_mt")] ) 
+```
+![Index of abundance plus/minus 1 standard error](SpatialVAM_output/Index.png) 
+
+## Center of gravity and range expansion/contraction
+
+We can detect shifts in distribution or range expansion/contraction.  
+```{r plot_range, message=FALSE, tidy=TRUE, linewidth=50}
+SpatialDeltaGLMM::Plot_range_shifts(Report=Report, TmbData=TmbData, Sdreport=Opt$SD, Znames=colnames(TmbData$Z_xm), PlotDir=DateFile, category_names=unique(DF$Sci), Year_Set=Year_Set)
+```
+
