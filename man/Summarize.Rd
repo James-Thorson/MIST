@@ -4,7 +4,8 @@
 \alias{Summarize}
 \title{Summarize model outputs}
 \usage{
-Summarize(Report, SD, InputList, SimList = NULL, species_names = NULL)
+Summarize(Report, TmbData = NULL, SD = NULL, Map = NULL, SimList = NULL,
+  species_names = NULL)
 }
 \description{
 \code{Summarize} calculates useful outputs

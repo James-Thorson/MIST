@@ -3,7 +3,7 @@
 #' \code{Summarize} calculates useful outputs
 #'
 #' @export
-Summarize = function( Report, SD, InputList, SimList=NULL, species_names=NULL ){
+Summarize = function( Report, TmbData=NULL, SD=NULL, Map=NULL, SimList=NULL, species_names=NULL ){
 
   # Local function to extract standard errors in useful way
   SE_hat_fn = function( SD, Report, Map=NULL, parname){
@@ -51,15 +51,17 @@ Summarize = function( Report, SD, InputList, SimList=NULL, species_names=NULL ){
   if( !is.null(SimList)) DerivedQuants[["Eigen_B"]] = eigen( SimList$B_pp )
 
   # Density dependence
-  DerivedQuants[["Eigen_BminusI_hat"]] = eigen( Report$B_pp - diag(InputList$TmbData$n_p))
-  if( !is.null(SimList)) DerivedQuants[["Eigen_BminusI"]] = eigen( SimList$B_pp - diag(InputList$TmbData$n_p))
+  if( !is.null(TmbData) ){
+    DerivedQuants[["Eigen_BminusI_hat"]] = eigen( Report$B_pp - diag(TmbData$n_p))
+    if( !is.null(SimList)) DerivedQuants[["Eigen_BminusI"]] = eigen( SimList$B_pp - diag(TmbData$n_p))
+  }
 
   # Terms
   DerivedQuants[["Alpha_pr"]] = Report$Alpha_pr
   DerivedQuants[["Beta_pr"]] = Report$Beta_pr
-  if( !is.null(SD) ){
-    DerivedQuants[["Alpha_pr_SE"]] = SE_hat_fn( SD=SD, Report=Report, Map=InputList$Map, parname="Alpha_pr")
-    DerivedQuants[["Beta_pr_SE"]] = SE_hat_fn( SD=SD, Report=Report, Map=InputList$Map, parname="Beta_pr")
+  if( !is.null(SD) && !is.null(Map) ){
+    DerivedQuants[["Alpha_pr_SE"]] = SE_hat_fn( SD=SD, Report=Report, Map=Map, parname="Alpha_pr")
+    DerivedQuants[["Beta_pr_SE"]] = SE_hat_fn( SD=SD, Report=Report, Map=Map, parname="Beta_pr")
   }
 
   # Add names
