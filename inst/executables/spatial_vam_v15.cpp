@@ -1,6 +1,13 @@
 // Space time 
 #include <TMB.hpp>
 
+// Posfun
+template<class Type>
+Type posfun(Type x, Type lowerlimit, Type &pen){
+  pen += CppAD::CondExpLt(x,lowerlimit,Type(0.01)*pow(x-lowerlimit,2),Type(0));
+  return CppAD::CondExpGe(x,lowerlimit,x,lowerlimit/(Type(2)-x/lowerlimit));
+}
+
 // trace of a matrix
 template<class Type>
 Type trace( matrix<Type> mat ){
@@ -96,10 +103,11 @@ Type objective_function<Type>::operator() ()
   // Settings
   DATA_IVECTOR( Options_vec );
   // Slot 0 -- Method for assembling B_pp (0=Cointegration; 1=Simple_eigen_cointegration;  2=Hybrid_eigen_cointegration;  3=Rescaled_cointegration)
-  // ResSlot 1 -- include spatial variation in alpha
+  // Slot 1 -- include spatial variation in alpha
   // Slot 2 -- option for diagonal covariance (i.e., independence among species)
   // Slot 3 -- equilibrium distribution; 0=start from stationary mean; 1=start from variation but not density dependence
   // Slot 4 -- method for spatial variation; 0=SPDE; 1=AR1 precision matrix
+  // Slot 5 -- Type of removals (1: exact, beginning-of-year;  2: explicit-F, beginning;  3: exact, end;  4: explicit-F, end)
   DATA_IVECTOR( ObsModel_p );
   // Slot 1-n_p -- distribution of data: 0=Poisson; 1=Lognormal; 2=Zero-inflated lognormal; 3=lognormal-Poisson; 4=Normal
   DATA_VECTOR( PenMult_z );  // 0: Penalty on eigenvalues; 1: Penalty on columns of Alpha_pr
@@ -114,10 +122,14 @@ Type objective_function<Type>::operator() ()
   DATA_INTEGER(n_j);   // Number of dynamic factors in process error (j)
 
   // Data
-  DATA_VECTOR( c_i );         // Count for observation
+  DATA_VECTOR( b_i );         // Count for observation
   DATA_FACTOR( p_i );       	// Species for observation
   DATA_FACTOR( s_i );       	// Site for observation
   DATA_FACTOR( t_i );       	// Year for observation
+
+  // Harvest
+  DATA_ARRAY( c_ktp );        // Harvest for each location, year, and species
+  DATA_SCALAR( catchlogsd );     // Logsd for harvest
 
   // Derived quantities
   DATA_VECTOR( a_k );        // Area for each "real" stratum(km^2) in each stratum (zero for all knots k not associated with stations s)
@@ -143,6 +155,9 @@ Type objective_function<Type>::operator() ()
   PARAMETER_MATRIX(Beta_pr);   // error correction loadings, B_pp = Alpha_pr %*% t(Beta_pr)
   PARAMETER_MATRIX(logsigma_pz);
 
+  // Harvest rates
+  PARAMETER_ARRAY( logF_ktp );  // log-instantaneous mortality rate
+
   // Random effects
   PARAMETER_ARRAY(d_ktp);  // Spatial process variation
   PARAMETER_MATRIX(Ainput_kp);  // Spatial process variation
@@ -151,11 +166,12 @@ Type objective_function<Type>::operator() ()
   // global stuff
   int n_l = Z_kl.row(0).size();
   Type jnll = 0;
-  vector<Type> jnll_comp(4);
+  vector<Type> jnll_comp(6);
   jnll_comp.setZero();
+  Type pos_penalty = 0;
   matrix<Type> Identity_pp(n_p, n_p);
   Identity_pp.setIdentity();
-  
+
   // Anisotropy elements
   matrix<Type> H(2,2);
   H(0,0) = exp(Hinput_z(0));
@@ -347,22 +363,76 @@ Type objective_function<Type>::operator() ()
   // Calculate predicted density in year t+1 given model and density in year t
   vector<Type> tmp1_p(n_p);
   vector<Type> tmp2_p(n_p);
-  array<Type> dhat_ktp(n_k, n_t, n_p);
+  array<Type> dhat1_ktp(n_k, n_t, n_p);   // Survivors after pre-density-dependence harvest
+  array<Type> dhat2_ktp(n_k, n_t, n_p);   // Survivors after density dependence
+  array<Type> dhat3_ktp(n_k, n_t, n_p);   // Survivors after post-density-dependence harvest
+  array<Type> dpred_ktp(n_k, n_t, n_p);   // Predicted density for each year
+  array<Type> F_ktp(n_k, n_t, n_p);
+  array<Type> chat_ktp( n_k, n_t, n_p );
+  chat_ktp.setZero();
   // First year
   for(int k=0; k<n_k; k++){
   for(int p=0; p<n_p; p++){
-    if(Options_vec(3)==0) dhat_ktp(k,0,p) = phi_p(p) + dinf_kp(k,p);
-    if(Options_vec(3)==1) dhat_ktp(k,0,p) = phi_p(p) + A_kp(k,p);
+    if(Options_vec(3)==0) dpred_ktp(k,0,p) = phi_p(p) + dinf_kp(k,p);
+    if(Options_vec(3)==1) dpred_ktp(k,0,p) = phi_p(p) + A_kp(k,p);
   }}
   // Project forward
-  for(int t=1; t<n_t; t++){
-    for(int k=0; k<n_k; k++){
+  for(int t=0; t<n_t; t++){
+  for(int k=0; k<n_k; k++){
+    // Harvest for pre-density-dependent harvest options
     for(int p=0; p<n_p; p++){
-      dhat_ktp(k,t,p) = A_kp(k,p);
-      for(int p1=0; p1<n_p; p1++) dhat_ktp(k,t,p) += B_pp(p,p1) * d_ktp(k,t-1,p1);
-    }}
-  }
-  
+      F_ktp(k,t,p) = exp( logF_ktp(k,t,p) );
+      if( Options_vec(5)==0 | Options_vec(5)==3 | Options_vec(5)==4 ){
+        dhat1_ktp(k,t,p) = d_ktp(k,t,p);
+      }
+      if( Options_vec(5)==1 ){
+        dhat1_ktp(k,t,p) = log( posfun(exp(d_ktp(k,t,p))-c_ktp(k,t,p), Type(1e-10), pos_penalty) );
+        chat_ktp(k,t,p) = exp(d_ktp(k,t,p)) - exp(dhat1_ktp(k,t,p));
+      }
+      if( Options_vec(5)==2 ){
+        dhat1_ktp(k,t,p) = d_ktp(k,t,p) - F_ktp(k,t,p);
+        chat_ktp(k,t,p) = exp(d_ktp(k,t,p)) * ( 1 - exp(-F_ktp(k,t,p)) );
+      }
+    }
+    // Density dependence
+    for(int p=0; p<n_p; p++){
+      dhat2_ktp(k,t,p) = A_kp(k,p);
+      for(int p1=0; p1<n_p; p1++){
+        dhat2_ktp(k,t,p) += B_pp(p,p1) * dhat1_ktp(k,t,p1);
+      }
+    }
+    // Harvest for post density-dependent harvest options
+    for(int p=0; p<n_p; p++){
+      if( Options_vec(5)==0 | Options_vec(5)==1 | Options_vec(5)==2 ){
+        dhat3_ktp(k,t,p) = dhat2_ktp(k,t,p);
+      }
+      if( Options_vec(5)==3 ){
+        dhat3_ktp(k,t,p) = log( posfun(exp(dhat2_ktp(k,t,p))-c_ktp(k,t,p), Type(1e-10), pos_penalty) );
+        chat_ktp(k,t,p) = exp(dhat2_ktp(k,t,p)) - exp(dhat3_ktp(k,t,p));
+      }
+      if( Options_vec(5)==4 ){
+        dhat3_ktp(k,t,p) = dhat2_ktp(k,t,p) - F_ktp(k,t,p);
+        chat_ktp(k,t,p) = exp(dhat2_ktp(k,t,p)) * ( 1 - exp(-F_ktp(k,t,p)) );
+      }
+      // Promote to next year's prediction
+      if( (t+1)<n_t ){
+        dpred_ktp(k,t+1,p) = dhat3_ktp(k,t,p);
+      }
+    }
+  }}
+  REPORT( pos_penalty );
+
+  // Probability of observed harvest, or of logF if subtracting harvest using posfun to ensure positive biomass
+  for(int k=0; k<n_k; k++){
+  for(int p=0; p<n_p; p++){
+  for(int t=0; t<n_t; t++){
+    if( c_ktp(k,t,p)>0 ){
+      if( Options_vec(5)==1 | Options_vec(5)==3 ) jnll_comp(4) -= dnorm( logF_ktp(k,t,p), Type(0.0), catchlogsd, true );
+      if( Options_vec(5)==2 | Options_vec(5)==4 ) jnll_comp(4) -= dnorm( log(c_ktp(k,t,p)), log(chat_ktp(k,t,p)), catchlogsd, true );
+    }
+  }}}
+  jnll_comp(5) += 1000 * pos_penalty;
+
   // Probability of random fields
   array<Type> Epsilon_kp(n_k, n_p);
   // Alpha (spatial variation in productivity)
@@ -378,7 +448,7 @@ Type objective_function<Type>::operator() ()
   for(int t=0; t<n_t; t++){
     for(int k=0; k<n_k; k++){
     for(int p=0; p<n_p; p++){
-      Epsilon_kp(k,p) = d_ktp(k,t,p) - dhat_ktp(k,t,p);
+      Epsilon_kp(k,p) = d_ktp(k,t,p) - dpred_ktp(k,t,p);
     }}
     // Depends upon whether using independence or not
     if( Options_vec(2)==0 ){
@@ -390,7 +460,7 @@ Type objective_function<Type>::operator() ()
     if( Options_vec(2)==1 ){
       for(int p=0; p<n_p; p++){
         if( Options_vec(4)==0 ) Q_spatiotemporal = Q_spde(spde, exp(logkappa_z(p)), H);
-      // FOR EXPLORATION SEE: C:\Users\James.Thorson\Desktop\Project_git\2016_Spatio-temporal_models\Week 6 -- 2D spatial models\Lecture\autoregressive_grid_V1.cpp
+        // FOR EXPLORATION SEE: C:\Users\James.Thorson\Desktop\Project_git\2016_Spatio-temporal_models\Week 6 -- 2D spatial models\Lecture\autoregressive_grid_V1.cpp
         if( Options_vec(4)==1 ) Q_spatiotemporal = exp(2*logtauE_p(p)) * (M0*pow(1+exp(logkappa_z(p)*2),2) + M1*(1+exp(logkappa_z(p)*2))*(-exp(logkappa_z(p))) + M2*exp(logkappa_z(p)*2));
         jnll_comp(1) += SCALE( GMRF(Q_spatiotemporal), exp(L_val(p) - logtauE_p(p)))(Epsilon_kp.col(p));
       }
@@ -405,16 +475,16 @@ Type objective_function<Type>::operator() ()
   Type log_notencounterprob;  
   for(int i=0; i<n_i; i++){
     logchat_i(i) = d_ktp(s_i(i),t_i(i),p_i(i));
-    if( !isNA(c_i(i)) ){
-      if( ObsModel_p(p_i(i))==0 ) jnll_i(i) = -1 * dpois( c_i(i), exp(logchat_i(i)), true );
-      if( ObsModel_p(p_i(i))==1 ) jnll_i(i) = -1 * dlognorm( c_i(i), logchat_i(i), exp(logsigma_pz(p_i(i),0)), true );
+    if( !isNA(b_i(i)) ){
+      if( ObsModel_p(p_i(i))==0 ) jnll_i(i) = -1 * dpois( b_i(i), exp(logchat_i(i)), true );
+      if( ObsModel_p(p_i(i))==1 ) jnll_i(i) = -1 * dlognorm( b_i(i), logchat_i(i), exp(logsigma_pz(p_i(i),0)), true );
       if( ObsModel_p(p_i(i))==2 ){
         encounterprob = ( 1.0 - exp(-1 * exp(logchat_i(i)) * exp(logsigma_pz(p_i(i),1))) );
         log_notencounterprob = -1 * exp(logchat_i(i)) * exp(logsigma_pz(p_i(i),1));
-        jnll_i(i) = -1 * dzinflognorm( c_i(i), logchat_i(i)-log(encounterprob), encounterprob, log_notencounterprob, exp(logsigma_pz(p_i(i),0)), true);
+        jnll_i(i) = -1 * dzinflognorm( b_i(i), logchat_i(i)-log(encounterprob), encounterprob, log_notencounterprob, exp(logsigma_pz(p_i(i),0)), true);
       }
-      if( ObsModel_p(p_i(i))==3 ) jnll_i(i) = -1 * dpois( c_i(i), exp(logchat_i(i)+delta_i(i)), true );
-      if( ObsModel_p(p_i(i))==4 ) jnll_i(i) = -1 * dnorm( c_i(i), logchat_i(i), exp(logsigma_pz(p_i(i),0)), true );
+      if( ObsModel_p(p_i(i))==3 ) jnll_i(i) = -1 * dpois( b_i(i), exp(logchat_i(i)+delta_i(i)), true );
+      if( ObsModel_p(p_i(i))==4 ) jnll_i(i) = -1 * dnorm( b_i(i), logchat_i(i), exp(logsigma_pz(p_i(i),0)), true );
     }
   }
 
@@ -528,8 +598,13 @@ Type objective_function<Type>::operator() ()
   // Fields
   REPORT( A_kp );
   REPORT( d_ktp );
-  REPORT( dhat_ktp );
+  REPORT( dhat1_ktp );
+  REPORT( dhat2_ktp );
+  REPORT( dhat3_ktp );
   REPORT( Ainput_kp );
+  // Harvest
+  REPORT( dpred_ktp );
+  REPORT( chat_ktp );
   // Sanity checks
   REPORT( L_jp );
   REPORT( M_PI );

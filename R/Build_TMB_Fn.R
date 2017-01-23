@@ -150,7 +150,7 @@ Build_TMB_Fn = function( TmbData, Version, estimate_phi=TRUE, Kappa="constant", 
   } # End nonspatial
 
   # Inputs for Spatial model
-  if( Version%in%c("spatial_vam_v14","spatial_vam_v13","spatial_vam_v12","spatial_vam_v11","spatial_vam_v10","spatial_vam_v9","spatial_vam_v8","spatial_vam_v7","spatial_vam_v6","spatial_vam_v5","spatial_vam_v4","spatial_vam_v3","spatial_vam_v2","spatial_vam_v1")){
+  if( Version%in%c("spatial_vam_v15","spatial_vam_v14","spatial_vam_v13","spatial_vam_v12","spatial_vam_v11","spatial_vam_v10","spatial_vam_v9","spatial_vam_v8","spatial_vam_v7","spatial_vam_v6","spatial_vam_v5","spatial_vam_v4","spatial_vam_v3","spatial_vam_v2","spatial_vam_v1")){
     # Parameters
     if(Version=="spatial_vam_v1") TmbParams = list("Hinput_z"=c(0,0), "logkappa"=MidDist, "alpha_p"=rep(0,TmbData$n_p), "phi_p"=rep(0,TmbData$n_p), "logtauA_p"=rep(0,TmbData$n_p), "L_val"=rnorm(TmbData$n_j*TmbData$n_p-TmbData$n_j*(TmbData$n_j-1)/2), "B_pp"=matrix(rnorm(TmbData$n_p^2,sd=0.1),TmbData$n_p,TmbData$n_p), "d_ktp"=array(2,dim=unlist(Data[c('n_k','n_t','n_p')])), "Ainput_kp"=matrix(0,nrow=TmbData$n_k,ncol=TmbData$n_p))
     if(Version%in%c("spatial_vam_v3","spatial_vam_v2")) TmbParams = list("Hinput_z"=c(0,0), "logkappa"=MidDist, "alpha_p"=rep(0,TmbData$n_p), "phi_p"=rep(0,TmbData$n_p), "logtauA_p"=rep(0,TmbData$n_p), "L_val"=ifelse( is.na(SpatialVAM:::fixdiag(Nrow=TmbData$n_p, Ncol=TmbData$n_j)), 1, 0), "B_pp"=diag(0.5,TmbData$n_p), "logsigma_pz"=matrix(0,nrow=TmbData$n_p,1), "d_ktp"=abind::abind(SimList$d_stp,array(0,dim=c(TmbData$n_k-TmbData$n_s,TmbData$n_t,TmbData$n_p)),along=1), "Ainput_kp"=matrix(0,nrow=TmbData$n_k,ncol=TmbData$n_p))      # "d_ktp"=array(2,dim=unlist(Data[c('n_k','n_t','n_p')]))
@@ -160,12 +160,14 @@ Build_TMB_Fn = function( TmbData, Version, estimate_phi=TRUE, Kappa="constant", 
     if(Version%in%c("spatial_vam_v10")) TmbParams = list("Hinput_z"=c(0,0), "logkappa"=MidDist, "alpha_p"=rep(0,TmbData$n_p), "phi_p"=rep(0,TmbData$n_p), "logMargSigmaA_p"=rep(0,TmbData$n_p), "L_val"=ifelse( is.na(SpatialVAM:::fixdiag(Nrow=TmbData$n_p, Ncol=TmbData$n_j)), 1, 0), "Alpha_pr"=rbind(diag(-0.5,TmbData$n_r),rmatrix(nrow=TmbData$n_p-TmbData$n_r,ncol=TmbData$n_r,sd=0.01)), "Beta_pr"=rbind(diag(TmbData$n_r),rmatrix(nrow=TmbData$n_p-TmbData$n_r,ncol=TmbData$n_r,sd=0.2)), "logsigma_pz"=matrix(0,nrow=TmbData$n_p,2), "d_ktp"=array(0,dim=c(TmbData$n_k,TmbData$n_t,TmbData$n_p)), "Ainput_kp"=matrix(0,nrow=TmbData$n_k,ncol=TmbData$n_p), "delta_i"=rep(0,TmbData$n_i))      # "d_ktp"=array(2,dim=unlist(Data[c('n_k','n_t','n_p')]))
     if(Version%in%c("spatial_vam_v12","spatial_vam_v11")) TmbParams = list("Hinput_z"=c(0,0), "logkappa_z"=rep(MidDist,TmbData$n_p+1), "alpha_p"=rep(0,TmbData$n_p), "phi_p"=rep(0,TmbData$n_p), "logMargSigmaA_p"=rep(0,TmbData$n_p), "L_val"=ifelse( is.na(SpatialVAM:::fixdiag(Nrow=TmbData$n_p, Ncol=TmbData$n_j)), 1, 0), "Alpha_pr"=rbind(rmatrix(nrow=TmbData$n_r,ncol=TmbData$n_r,sd=0.01,diag=-0.5),rmatrix(nrow=TmbData$n_p-TmbData$n_r,ncol=TmbData$n_r,sd=0.01)), "Beta_pr"=rbind(diag(TmbData$n_r),rmatrix(nrow=TmbData$n_p-TmbData$n_r,ncol=TmbData$n_r,sd=0.2)), "logsigma_pz"=matrix(0,nrow=TmbData$n_p,2), "d_ktp"=array(0,dim=c(TmbData$n_k,TmbData$n_t,TmbData$n_p)), "Ainput_kp"=matrix(0,nrow=TmbData$n_k,ncol=TmbData$n_p), "delta_i"=rep(0,TmbData$n_i))      # "d_ktp"=array(2,dim=unlist(Data[c('n_k','n_t','n_p')]))
     if(Version%in%c("spatial_vam_v14","spatial_vam_v13")) TmbParams = list("Hinput_z"=c(0,0), "logkappa_z"=rep(MidDist,TmbData$n_p+1), "alpha_p"=rep(0,TmbData$n_p), "phi_p"=rep(0,TmbData$n_p), "logMargSigmaA_p"=rep(0,TmbData$n_p), "L_val"=ifelse( is.na(SpatialVAM:::fixdiag(Nrow=TmbData$n_p, Ncol=TmbData$n_j)), 1, 0), "Alpha_pr"=rbind(rmatrix(nrow=TmbData$n_r,ncol=TmbData$n_r,sd=0.01,diag=-0.5),rmatrix(nrow=TmbData$n_p-TmbData$n_r,ncol=TmbData$n_r,sd=0.01)), "Beta_pr"=rbind(diag(TmbData$n_r),rmatrix(nrow=TmbData$n_p-TmbData$n_r,ncol=TmbData$n_r,sd=0.2)), "logsigma_pz"=matrix(0,nrow=TmbData$n_p,2), "d_ktp"=array(0,dim=c(TmbData$n_k,TmbData$n_t,TmbData$n_p)), "Ainput_kp"=matrix(0,nrow=TmbData$n_k,ncol=TmbData$n_p), "delta_i"=rep(0,TmbData$n_i))      # "d_ktp"=array(2,dim=unlist(Data[c('n_k','n_t','n_p')]))
+    if(Version%in%c("spatial_vam_v15")) TmbParams = list("Hinput_z"=c(0,0), "logkappa_z"=rep(MidDist,TmbData$n_p+1), "alpha_p"=rep(0,TmbData$n_p), "phi_p"=rep(0,TmbData$n_p), "logMargSigmaA_p"=rep(0,TmbData$n_p), "L_val"=ifelse( is.na(SpatialVAM:::fixdiag(Nrow=TmbData$n_p, Ncol=TmbData$n_j)), 1, 0), "Alpha_pr"=rbind(rmatrix(nrow=TmbData$n_r,ncol=TmbData$n_r,sd=0.01,diag=-0.5),rmatrix(nrow=TmbData$n_p-TmbData$n_r,ncol=TmbData$n_r,sd=0.01)), "Beta_pr"=rbind(diag(TmbData$n_r),rmatrix(nrow=TmbData$n_p-TmbData$n_r,ncol=TmbData$n_r,sd=0.2)), "logsigma_pz"=matrix(0,nrow=TmbData$n_p,2), "logF_ktp"=array(-20,dim=unlist(TmbData[c('n_k','n_t','n_p')])), "d_ktp"=array(0,dim=c(TmbData$n_k,TmbData$n_t,TmbData$n_p)), "Ainput_kp"=matrix(0,nrow=TmbData$n_k,ncol=TmbData$n_p), "delta_i"=rep(0,TmbData$n_i))      # "d_ktp"=array(2,dim=unlist(Data[c('n_k','n_t','n_p')]))
 
     # Random
     if( length(Random)==1 && Random=="generate" ){
       # Treating alpha_p, phi_p and B_pp as random (in REML) results in very slow inner optimization!  (100s of steps)
       Random = c( "Ainput_kp", "d_ktp" )
       if( "delta_i" %in% names(TmbParams)) Random = c(Random, "delta_i")
+      if( "logF_ktp" %in% names(TmbParams)) Random = c(Random, "logF_ktp")
       if(use_REML==TRUE) Random = c(Random, "alpha_p", "phi_p")  # , "B_pp"
     }
 
@@ -188,8 +190,8 @@ Build_TMB_Fn = function( TmbData, Version, estimate_phi=TRUE, Kappa="constant", 
         }
         if( TmbData$ObsModel_p[p]==2 ){
           if( "delta_i" %in% names(TmbParams) ) Map[["delta_i"]][which((TmbData$p_i+1)==p)] = rep(NA,sum((TmbData$p_i+1)==p))
-          # Check number of zeros
-          NumZero = tapply( TmbData$c_i, INDEX=TmbData$p_i, FUN=function(vec){sum(vec==0)})
+          # Check number of zeros (uses either c_i or b_i, whichever is available)
+          NumZero = tapply( unlist(TmbData[c('c_i','b_i')]), INDEX=TmbData$p_i, FUN=function(vec){sum(vec==0)})
           if( any(NumZero==0) ){
             Map[["logsigma_pz"]][,2] = ifelse( NumZero==0, NA, Map[["logsigma_pz"]][,2])
             TmbParams[["logsigma_pz"]][,2] = ifelse( NumZero==0, 20, TmbParams[["logsigma_pz"]][,2])
@@ -269,6 +271,18 @@ Build_TMB_Fn = function( TmbData, Version, estimate_phi=TRUE, Kappa="constant", 
       }
       if( Kappa=="spatial_vs_spatiotemporal" ){
         if("logkappa_z" %in% names(TmbParams)) Map[['logkappa_z']] = factor( c(rep(1,TmbData$n_p),2) )
+      }
+      # Fix logF_ktp for years without harvest, and change starting values to be appropriate
+      if( "logF_ktp" %in% names(TmbParams)){
+        if( TmbData[["Options_vec"]]["Harvest_Method"]%in%c(0,1,3) ){
+          Map[["logF_ktp"]] = factor( rep(NA,prod(unlist(TmbData[c('n_k','n_t','n_p')]))) )
+        }
+        if( TmbData[["Options_vec"]]["Harvest_Method"]%in%c(2,4) ){
+          Map[["logF_ktp"]] = array( 1:prod(unlist(TmbData[c('n_k','n_t','n_p')])), dim=unlist(TmbData[c('n_k','n_t','n_p')]) )
+          Map[["logF_ktp"]] = ifelse( TmbData[['c_ktp']]==0, NA, Map[["logF_ktp"]] )
+          Map[["logF_ktp"]] = factor(Map[["logF_ktp"]])
+          TmbParams[["logF_ktp"]] = ifelse( TmbData[['c_ktp']]==0, -20, -1 )
+        }
       }
     }
 

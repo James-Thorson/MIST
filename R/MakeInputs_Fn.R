@@ -1,4 +1,9 @@
 
+########################
+# THIS FUNCTION IS NOW DEPRECATED
+#  PLEASE USE Build_TMB_Fn.R INSTEAD
+########################
+
 MakeInputs_Fn = function( Version, options_vec, obsmodel_p=NULL, loc_x, a_x, data_frame, n_cointegrate=NULL, n_factors=1,
   use_REML=FALSE, independentTF=FALSE, estimate_phi=TRUE ){
 

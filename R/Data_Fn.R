@@ -26,6 +26,8 @@
 #'   \item{"Complex_eigenvalue"}{Co-integration with eigenvalues including complex numbers}
 #' }
 #' @param startFromEquilibriumTF whether species start from equilibrium densities (i.e., turning of phi)
+#' @param c_ktp harvest (biomass per area, in same units as \code{b_i} and \code{a_x}), where \code{c_ktp=0} involves no harvest (the default)
+#' @param catchlogsd log-standard deviation of observed harvest specified via \code{c_ktp}
 #' @param MeshList, tagged list representing location information for the SPDE mesh hyperdistribution, i.e., from \code{SpatialDeltaGLMM::Spatial_Information_Fn}
 #' @param spatial_method DEPRECATED, always uses "Mesh" approximation
 #' @param CheckForErrors Boolean, whether to check for errors in data inputs
@@ -33,11 +35,12 @@
 #' @return Tagged list containing inputs to function \code{SpatialVAM::Build_TMB_Fn()}
 
 #' @export
-Data_Fn = function(Version, obsmodel_p=NULL,  b_i, s_i, t_i, p_i, a_x, n_cointegrate=NULL, n_factors=1,
-  B_type="Real_eigenvalue", startFromEquilibriumTF=FALSE, MeshList, spatial_method=0, CheckForErrors=TRUE  ){
+Data_Fn = function(Version, obsmodel_p=NULL, b_i, s_i, t_i, p_i, a_x, MeshList, n_factors=1, n_cointegrate=NULL,
+  B_type="Real_eigenvalue", startFromEquilibriumTF=FALSE, c_ktp=NULL, catchlogsd=0.01,
+  spatial_method=0, CheckForErrors=TRUE ){
 
   # Assemble options vector
-  options_vec = c( "B_type"=switch(B_type,"Independent"=0,"Real_eigenvalue"=3,"Complex_eigenvalue"=4), "IncludeAlpha"=1, "independentTF"=ifelse(B_type=="Independent",1,0), "StartVal"=1-as.numeric(startFromEquilibriumTF), "Spatial_Method"=spatial_method)
+  options_vec = c( "B_type"=switch(B_type,"Independent"=0,"Real_eigenvalue"=3,"Complex_eigenvalue"=4), "IncludeAlpha"=1, "independentTF"=ifelse(B_type=="Independent",1,0), "StartVal"=1-as.numeric(startFromEquilibriumTF), "Spatial_Method"=spatial_method, "Harvest_Method"=1)
 
   # Expand a_x for auxiliary knots
   a_k = c(a_x, rep(0,MeshList$anisotropic_mesh$n-nrow(MeshList$loc_x)))
@@ -51,6 +54,7 @@ Data_Fn = function(Version, obsmodel_p=NULL,  b_i, s_i, t_i, p_i, a_x, n_cointeg
   # Fill in defaults
   if( is.null(n_cointegrate) || is.na(as.numeric(n_cointegrate)) ) n_cointegrate = length(unique(data_frame[,'spp']))
   if( n_cointegrate>length(unique(data_frame[,'spp'])) ) stop( "n_cointegrate can't be greater than the number of species")
+  if( is.null(c_ktp)) c_ktp = array(0, dim=c(MeshList$anisotropic_mesh$n,diff(range(data_frame[,'year']))+1,length(unique(data_frame[,'spp']))) )
 
   # Nonspatial
   if( Version%in%c("nonspatial_vam_v3","nonspatial_vam_v2","nonspatial_vam_v1")){
@@ -71,7 +75,7 @@ Data_Fn = function(Version, obsmodel_p=NULL,  b_i, s_i, t_i, p_i, a_x, n_cointeg
   } # End nonspatial
 
   # Spatial
-  if( Version%in%c("spatial_vam_v14","spatial_vam_v13","spatial_vam_v12","spatial_vam_v11","spatial_vam_v10","spatial_vam_v9","spatial_vam_v8","spatial_vam_v7","spatial_vam_v6","spatial_vam_v5","spatial_vam_v4","spatial_vam_v3","spatial_vam_v2","spatial_vam_v1")){
+  if( Version%in%c("spatial_vam_v15","spatial_vam_v14","spatial_vam_v13","spatial_vam_v12","spatial_vam_v11","spatial_vam_v10","spatial_vam_v9","spatial_vam_v8","spatial_vam_v7","spatial_vam_v6","spatial_vam_v5","spatial_vam_v4","spatial_vam_v3","spatial_vam_v2","spatial_vam_v1")){
     require( Matrix )
     # Sparse matrices for 2D AR1 process
     # Generate sparse matrices for precision matrix of 2D AR1 process
@@ -88,6 +92,7 @@ Data_Fn = function(Version, obsmodel_p=NULL,  b_i, s_i, t_i, p_i, a_x, n_cointeg
     if(Version%in%c("spatial_vam_v8")) Return = list("Options_vec"=options_vec, "ObsModel_p"=obsmodel_p, "n_i"=nrow(data_frame), "n_s"=length(unique(data_frame[,'sitenum'])), "n_t"=diff(range(data_frame[,'year']))+1, "n_k"=MeshList$anisotropic_mesh$n, "n_p"=length(unique(data_frame[,'spp'])), "n_r"=n_cointegrate, "n_j"=n_factors, "c_i"=data_frame[,'catch'], "p_i"=as.numeric(data_frame[,'spp'])-1, "s_i"=data_frame[,'sitenum']-1, "t_i"=data_frame[,'year']-min(data_frame[,'year']), "a_k"=a_k, "Z_kl"=rbind(MeshList$loc_x,matrix(0,ncol=2,nrow=MeshList$anisotropic_mesh$n-nrow(MeshList$loc_x))), "spde"=NULL, "M0"=M0, "M1"=M1, "M2"=M2)
     if(Version%in%c("spatial_vam_v13","spatial_vam_v12","spatial_vam_v11","spatial_vam_v10","spatial_vam_v9")) Return = list("Options_vec"=options_vec, "ObsModel_p"=obsmodel_p, "PenMult_z"=c(1000,10), "n_i"=nrow(data_frame), "n_s"=length(unique(data_frame[,'sitenum'])), "n_t"=diff(range(data_frame[,'year']))+1, "n_k"=MeshList$anisotropic_mesh$n, "n_p"=length(unique(data_frame[,'spp'])), "n_r"=n_cointegrate, "n_j"=n_factors, "c_i"=data_frame[,'catch'], "p_i"=as.numeric(data_frame[,'spp'])-1, "s_i"=data_frame[,'sitenum']-1, "t_i"=data_frame[,'year']-min(data_frame[,'year']), "a_k"=a_k, "Z_kl"=rbind(as.matrix(MeshList$loc_x),matrix(0,ncol=2,nrow=MeshList$anisotropic_mesh$n-nrow(MeshList$loc_x))), "spde"=NULL, "G0"=M0, "G1"=M1, "G2"=M2)
     if(Version%in%c("spatial_vam_v14")) Return = list("Options_vec"=options_vec, "ObsModel_p"=obsmodel_p, "PenMult_z"=c(1000,10), "n_i"=nrow(data_frame), "n_s"=length(unique(data_frame[,'sitenum'])), "n_t"=diff(range(data_frame[,'year']))+1, "n_k"=MeshList$anisotropic_mesh$n, "n_p"=length(unique(data_frame[,'spp'])), "n_r"=n_cointegrate, "n_j"=n_factors, "c_i"=data_frame[,'catch'], "p_i"=as.numeric(data_frame[,'spp'])-1, "s_i"=data_frame[,'sitenum']-1, "t_i"=data_frame[,'year']-min(data_frame[,'year']), "a_k"=a_k, "Z_kl"=rbind(as.matrix(MeshList$loc_x),matrix(0,ncol=2,nrow=MeshList$anisotropic_mesh$n-nrow(MeshList$loc_x))), "spde"=NULL, "M0"=M0, "M1"=M1, "M2"=M2)
+    if(Version%in%c("spatial_vam_v15")) Return = list("Options_vec"=options_vec, "ObsModel_p"=obsmodel_p, "PenMult_z"=c(1000,10), "n_i"=nrow(data_frame), "n_s"=length(unique(data_frame[,'sitenum'])), "n_t"=diff(range(data_frame[,'year']))+1, "n_k"=MeshList$anisotropic_mesh$n, "n_p"=length(unique(data_frame[,'spp'])), "n_r"=n_cointegrate, "n_j"=n_factors, "b_i"=data_frame[,'catch'], "p_i"=as.numeric(data_frame[,'spp'])-1, "s_i"=data_frame[,'sitenum']-1, "t_i"=data_frame[,'year']-min(data_frame[,'year']), "c_ktp"=c_ktp, "catchlogsd"=catchlogsd, "a_k"=a_k, "Z_kl"=rbind(as.matrix(MeshList$loc_x),matrix(0,ncol=2,nrow=MeshList$anisotropic_mesh$n-nrow(MeshList$loc_x))), "spde"=NULL, "M0"=M0, "M1"=M1, "M2"=M2)
     if("spde" %in% names(Return)) Return[['spde']] = list("n_s"=MeshList$anisotropic_spde$n.spde, "n_tri"=nrow(MeshList$anisotropic_mesh$graph$tv), "Tri_Area"=MeshList$Tri_Area, "E0"=MeshList$E0, "E1"=MeshList$E1, "E2"=MeshList$E2, "TV"=MeshList$TV-1, "G0"=MeshList$anisotropic_spde$param.inla$M0, "G0_inv"=INLA::inla.as.dgTMatrix(solve(MeshList$anisotropic_spde$param.inla$M0)) )
 
     # Changes necessary for 2D AR1 process
