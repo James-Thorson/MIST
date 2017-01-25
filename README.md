@@ -1,9 +1,14 @@
 Description
 =============
-
-
+MIST
+* Is an R package for implementing a Multispecies Interaction Spatio-Temporal (MIST) model.
+* Uses identical input/output and model-diagnostic tools as `VAST` and other packages at www.FishStats.org 
 
 Background
+=============
+* This tool is designed to estimate pairwise interactions among species using spatially referenced data from multiple years (spatio-temporal data)
+* It decomposes variation into (1) covariance among species in a given year, and (2) impacts of species density on per-capita productivity of every other species
+* Spatial and spatiotemporal variation are approximated as Gaussian Markov random fields (Thorson Skaug Kristensen Shelton Ward Harms Banante 2014 Ecology), which imply that correlations in spatial variation decay as a function of distance.  
 
 Installation Instructions
 =============
@@ -29,4 +34,22 @@ Note: at the moment, TMB and INLA can be installed using the commands
 Next, please install the SpatialDFA from this GitHub repository using a function in the "devtools" package:
 
     # Install package
+    install_github("james-thorson/MIST") 
+    # Load package
+    library(MIST)
+
+Known installation/usage issues
+=============
+none
+
+Example code
+=============
+Please see examples folder for single-species and multi-species examples of how to run the model.
+
+Description of package
+=============
+### Please cite if using the software
+* Thorson, J., S. Munch, and D. Swain. In press. Estimating partial regulation to bridge between neutral and niche theory in spatio-temporal community dynamics. Ecology.
+
+
 
