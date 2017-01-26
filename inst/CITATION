@@ -1,0 +1,10 @@
+citHeader("Please cite 2017 (Ecology) if using the package")
+
+citEntry(entry = "Article",
+ title = "Estimating partial regulation in spatio-temporal models of community dynamics",
+ journal = "Ecology",
+ year = "2017",
+ author = "J.T. Thorson, S. Munch, D. Swain",
+ textVersion = "J.T. Thorson, S. Munch, D. Swain. In press. Estimating partial regulation in spatio-temporal models of community dynamics. Ecology." 
+)
+
