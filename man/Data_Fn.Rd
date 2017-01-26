@@ -2,12 +2,12 @@
 % Please edit documentation in R/Data_Fn.R
 \name{Data_Fn}
 \alias{Data_Fn}
-\title{Build data input for SpatialVAM}
+\title{Build data input for MIST}
 \usage{
-Data_Fn(Version, obsmodel_p = NULL, b_i, s_i, t_i, p_i, a_x,
-  n_cointegrate = NULL, n_factors = 1, B_type = "Real_eigenvalue",
-  startFromEquilibriumTF = FALSE, MeshList, spatial_method = 0,
-  CheckForErrors = TRUE)
+Data_Fn(Version, obsmodel_p = NULL, b_i, s_i, t_i, p_i, a_x, MeshList,
+  n_factors = 1, n_cointegrate = NULL, B_type = "Real_eigenvalue",
+  startFromEquilibriumTF = FALSE, c_ktp = NULL, catchlogsd = 0.01,
+  spatial_method = 0, CheckForErrors = TRUE)
 }
 \arguments{
 \item{Version}{a version number (see example for current default).}
@@ -31,9 +31,11 @@ Data_Fn(Version, obsmodel_p = NULL, b_i, s_i, t_i, p_i, a_x,
 
 \item{a_x}{Area associated with each knot}
 
-\item{n_cointegrate}{Number of regulatory relations in community matrix (default is number of species)}
+\item{MeshList,}{tagged list representing location information for the SPDE mesh hyperdistribution, i.e., from \code{SpatialDeltaGLMM::Spatial_Information_Fn}}
 
 \item{n_factors}{Rank of covariance matrix for process error}
+
+\item{n_cointegrate}{Number of regulatory relations in community matrix (default is number of species)}
 
 \item{B_type}{\describe{
   \item{"Independent"}{Independent spatial-Gompertz dynamics for each species}
@@ -43,14 +45,16 @@ Data_Fn(Version, obsmodel_p = NULL, b_i, s_i, t_i, p_i, a_x,
 
 \item{startFromEquilibriumTF}{whether species start from equilibrium densities (i.e., turning of phi)}
 
-\item{MeshList,}{tagged list representing location information for the SPDE mesh hyperdistribution, i.e., from \code{SpatialDeltaGLMM::Spatial_Information_Fn}}
+\item{c_ktp}{harvest (biomass per area, in same units as \code{b_i} and \code{a_x}), where \code{c_ktp=0} involves no harvest (the default)}
+
+\item{catchlogsd}{log-standard deviation of observed harvest specified via \code{c_ktp}}
 
 \item{spatial_method}{DEPRECATED, always uses "Mesh" approximation}
 
 \item{CheckForErrors}{Boolean, whether to check for errors in data inputs}
 }
 \value{
-Tagged list containing inputs to function \code{SpatialVAM::Build_TMB_Fn()}
+Tagged list containing inputs to function \code{MIST::Build_TMB_Fn()}
 }
 \description{
 \code{Data_Fn} builds a tagged list of data inputs used by TMB for running the model

@@ -7,7 +7,7 @@
 Build_TMB_Fn(TmbData, Version, estimate_phi = TRUE, Kappa = "constant",
   Parameters = "generate", Random = "generate", Map = "generate",
   use_REML = FALSE, loc_x = NULL, eigenbounds = c(Lower = -2, Upper =
-  -0.01), TmbDir = system.file("executables", package = "SpatialVAM"),
+  -0.01), TmbDir = system.file("executables", package = "MIST"),
   RunDir = getwd())
 }
 \arguments{
@@ -56,6 +56,6 @@ Tagged list containing objects for running a VAST model
 }
 }
 \description{
-\code{Build_TMB_Fn} builds a tagged list with everything necessary to run or interpret inputs for \code{SpatialVAM}
+\code{Build_TMB_Fn} builds a tagged list with everything necessary to run or interpret inputs for \code{MIST}
 }
 

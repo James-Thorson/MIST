@@ -4,7 +4,7 @@
 
 .onAttach <- function(libname, pkgname) {
   packageStartupMessage("###########################################################################################")
-  packageStartupMessage("Loading package SpatialVAM, developed by James Thorson for the Northwest Fisheries Science Center")
+  packageStartupMessage("Loading package MIST, developed by James Thorson for the Northwest Fisheries Science Center")
   packageStartupMessage("###########################################################################################")
   if( !"INLA" %in% utils::installed.packages()[,1] ){
     packageStartupMessage("Installing INLA...")

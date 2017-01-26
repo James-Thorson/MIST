@@ -1,5 +1,5 @@
 
-#' Build data input for SpatialVAM
+#' Build data input for MIST
 #'
 #' \code{Data_Fn} builds a tagged list of data inputs used by TMB for running the model
 #'
@@ -32,7 +32,7 @@
 #' @param spatial_method DEPRECATED, always uses "Mesh" approximation
 #' @param CheckForErrors Boolean, whether to check for errors in data inputs
 
-#' @return Tagged list containing inputs to function \code{SpatialVAM::Build_TMB_Fn()}
+#' @return Tagged list containing inputs to function \code{MIST::Build_TMB_Fn()}
 
 #' @export
 Data_Fn = function(Version, obsmodel_p=NULL, b_i, s_i, t_i, p_i, a_x, MeshList, n_factors=1, n_cointegrate=NULL,

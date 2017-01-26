@@ -12,6 +12,6 @@ Sim_Fn(n_species = 4, n_years = 20, n_years_burnin = 0, n_stations = 25,
   logMeanDens = 1, RandomSeed = NA, Loc = NULL)
 }
 \description{
-\code{Sim_Fn} simulates data from the data-generating process used in the SpatialVAM model
+\code{Sim_Fn} simulates data from the data-generating process used in the MIST model
 }
 
