@@ -10,6 +10,8 @@ Background
 * It decomposes variation into (1) covariance among species in a given year, and (2) impacts of species density on per-capita productivity of every other species
 * Spatial and spatiotemporal variation are approximated as Gaussian Markov random fields (Thorson Skaug Kristensen Shelton Ward Harms Banante 2014 Ecology), which imply that correlations in spatial variation decay as a function of distance.  
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.260143.svg)](https://doi.org/10.5281/zenodo.260143)
+
 Installation Instructions
 =============
 This function depends on R version >=3.1.1 and a variety of other tools.
