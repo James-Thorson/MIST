@@ -1,8 +1,8 @@
 ---
-title: Example script for SpatialVAM for spatio-temporal analysis of species interactions
+title: Example script for MIST for spatio-temporal analysis of species interactions
   data
 author: "James Thorson"
-date: "October 26, 2016"
+date: "January 25, 2017"
 output:
   pdf_document:
     fig_caption: yes
@@ -42,13 +42,13 @@ knit_hooks$set(output = function(x, options) {
 
 
 # Overview
-This tutorial will walk through a simple example of how to use `SpatialVAM` for estimating species interactions.
+This tutorial will walk through a simple example of how to use `MIST` for estimating species interactions.
 
 # Getting started
 
 To install TMB on a windows machine, we need to first install [Rtools](https://cran.r-project.org/bin/windows/Rtools/).  During the installation, please select the option to have Rtools included in your system path.  On other operating systems, it is not necessary to install Rtools.  We then install `VAST`.  
 ```{r load_packages, message=FALSE, eval=FALSE}
-devtools::install_github("james-thorson/SpatialVAM") 
+devtools::install_github("james-thorson/MIST") 
 ```
 
 We also install `FishData`, which is used to download data for our example
@@ -59,31 +59,31 @@ devtools::install_github("james-thorson/FishData")
 Next load libraries.
 ```{r load_libraries, message=FALSE}
 library(TMB)               # Can instead load library(TMBdebug)
-library(SpatialVAM)
+library(MIST)
 ```
 
 ## Further information
 
-If you have further questions after reading this tutorial, please explore the [GitHub repo](https://github.com/james-thorson/SpatialVAM/#description) mainpage, wiki, and glossary.  Also please explore the R help files, e.g., e.g., `?Data_Fn` for explanation of data inputs, or `?Param_Fn` for explanation of parameters.
+If you have further questions after reading this tutorial, please explore the [GitHub repo](https://github.com/james-thorson/MIST/#description) mainpage, wiki, and glossary.  Also please explore the R help files, e.g., e.g., `?Data_Fn` for explanation of data inputs, or `?Param_Fn` for explanation of parameters.
 
 ## Related tools
 
 Related tools for spatio-temporal fisheries analysis are currently housed at [www.FishStats.org](http://www.FishStats.org).  These include [VAST](https://github.com/james-thorson/VAST/#description), a a multispecies model for estimating abundance using delta-models, and [www.FishViz.org](http://www.FishViz.org), a tool for visualizing single-species results using worldwide. `VAST` and `SpatialDeltaGLMM` both use continuous integration to confirm that they give identical estimates when applied to single-species data.  
 
-## How to cite SpatialVAM
+## How to cite MIST
 
-`SpatialVAM` has involved many publications for developing individual features.  If using `SpatialVAM`, please read and cite:
+`MIST` has involved many publications for developing individual features.  If using `MIST`, please read and cite:
 
 ```{r citation, tidy=TRUE, width=70, width.cutoff=70}
-citation("SpatialVAM")
+citation("MIST")
 ```
 
-and also browse the [GitHub list](https://github.com/james-thorson/SpatialVAM/#description-of-package) of papers.
+and also browse the [GitHub list](https://github.com/james-thorson/MIST/#description-of-package) of papers.
 
 # Settings
 We use latest version for CPP code
 ```{r}
-Version = "spatial_vam_v14"
+Version = "spatial_vam_v15"
 ```
 
 ## Spatial settings
@@ -126,7 +126,7 @@ Species_set = c("Atheresthes stomias","Gadus chalcogrammus","Hippoglossoides ela
 
 We then set the location for saving files.
 ```{r make_dir, message=FALSE, warning=FALSE}
-DateFile = paste0(getwd(),'/SpatialVAM_output/')
+DateFile = paste0(getwd(),'/MIST_output/')
   dir.create(DateFile)
 ```
 
@@ -206,9 +206,9 @@ It is always good practice to conduct exploratory analysis of data.  Here, I vis
 ```{r explore_data, results="hide", tidy=TRUE, message=FALSE, warning=FALSE}
 SpatialDeltaGLMM::Plot_data_and_knots(Extrapolation_List=Extrapolation_List, Spatial_List=Spatial_List, Data_Geostat=Data_Geostat, PlotDir=DateFile )
 ```
-![Spatial extent and location of knots](SpatialVAM_output/Data_and_knots.png) 
+![Spatial extent and location of knots](MIST_output/Data_and_knots.png) 
 
-![Spatial distribution of catch-rate data](SpatialVAM_output/Data_by_year.png) 
+![Spatial distribution of catch-rate data](MIST_output/Data_by_year.png) 
 
 ## Convergence
 Here I print the diagnostics generated during parameter estimation, and I confirm that (1) no parameter is hitting an upper or lower bound and (2) the final gradient for each fixed-effect is close to zero. For explanation of parameters, please see `?Data_Fn`.
@@ -238,9 +238,9 @@ MapDetails_List = SpatialDeltaGLMM::MapDetails_Fn( "Region"=Region, "NN_Extrap"=
 # Plot maps representing density or other variables
 SpatialDeltaGLMM::PlotResultsOnMap_Fn(plot_set=c(3), MappingDetails=MapDetails_List[["MappingDetails"]], Report=Report, Sdreport=Opt$SD, PlotDF=MapDetails_List[["PlotDF"]], MapSizeRatio=MapDetails_List[["MapSizeRatio"]], Xlim=MapDetails_List[["Xlim"]], Ylim=MapDetails_List[["Ylim"]], FileName=DateFile, category_names=unique(DF$Sci), Year_Set=Year_Set, Rotate=MapDetails_List[["Rotate"]], Cex=MapDetails_List[["Cex"]], Legend=MapDetails_List[["Legend"]], zone=MapDetails_List[["Zone"]], mar=c(0,0,2,0), oma=c(3.5,3.5,0,0), cex=1.8)
 ```
-![Density maps for each year for arrowtooth flounder](SpatialVAM_output/Dens--Atheresthes_stomias.png) 
+![Density maps for each year for arrowtooth flounder](MIST_output/Dens--Atheresthes_stomias.png) 
 
-![Density maps for each year for Alaska pollock](SpatialVAM_output/Dens--Gadus_chalcogrammus.png) 
+![Density maps for each year for Alaska pollock](MIST_output/Dens--Gadus_chalcogrammus.png) 
 
 ## Index of abundance
 
@@ -249,7 +249,7 @@ The index of abundance is generally most useful for stock assessment models.
 Index = SpatialDeltaGLMM::PlotIndex_Fn( DirName=DateFile, TmbData=TmbData, Sdreport=Opt$SD, Year_Set=min(Data_Geostat[,'Year']):max(Data_Geostat[,'Year']), Years2Include=which(min(Data_Geostat[,'Year']):max(Data_Geostat[,'Year'])%in%sort(unique(Data_Geostat[,'Year']))), strata_names=names(strata.limits)[1], category_names=levels(DF[,'Sci']), use_biascorr=TRUE )
 pander::pandoc.table( Index$Table[,c("Category","Year","Estimate_metric_tons","SD_mt")] ) 
 ```
-![Index of abundance plus/minus 1 standard error](SpatialVAM_output/Index.png) 
+![Index of abundance plus/minus 1 standard error](MIST_output/Index.png) 
 
 ## Center of gravity and range expansion/contraction
 
