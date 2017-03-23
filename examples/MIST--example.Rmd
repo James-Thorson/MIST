@@ -163,7 +163,7 @@ And we finally generate the information used for conducting spatio-temporal para
 ```{r spatial_information, message=FALSE, warning=FALSE, tidy=TRUE, linewidth=60}
 Spatial_List = SpatialDeltaGLMM::Spatial_Information_Fn( grid_size_km=100, n_x=n_x, Method="Mesh", Lon=Data_Geostat[,'Lon'], Lat=Data_Geostat[,'Lat'], Extrapolation_List=Extrapolation_List, randomseed=Kmeans_Config[["randomseed"]], nstart=Kmeans_Config[["nstart"]], iter.max=Kmeans_Config[["iter.max"]], DirPath=DateFile )
 # Add knots to Data_Geostat
-Data_Geostat = cbind( Data_Geostat, Spatial_List$loc_UTM, "knot_i"=Spatial_List$knot_i )
+Data_Geostat = cbind( Data_Geostat, "knot_i"=Spatial_List$knot_i )
 ```
 
 # Build and run model

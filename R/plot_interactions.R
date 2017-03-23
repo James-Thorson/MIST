@@ -4,7 +4,7 @@
 #' \code{plot_interactions} plots the estimated interaction matrix
 #'
 #' @export
-plot_interactions = function( Report, TmbData, category_names=1:TmbData$n_p, plotdir=paste0(getwd(),"/"), ... ){
+plot_interactions = function( Report, TmbData, category_names=1:TmbData$n_p, plotdir=paste0(getwd(),"/"), res=200, ... ){
 
   # Preparatory calculations
   Eigen = eigen(Report$B_pp)
@@ -13,7 +13,7 @@ plot_interactions = function( Report, TmbData, category_names=1:TmbData$n_p, plo
   Nrow = ceiling(TmbData$n_p/Ncol)
 
   # Plot eigen-decomposition
-  if( !is.null(plotdir)) png( file=paste0(plotdir,"eigen_B_pp.png"), width=3*Ncol, height=3*Nrow, units="in", res=200)
+  if( !is.null(plotdir)) png( file=paste0(plotdir,"eigen_B_pp.png"), width=3*Ncol, height=3*Nrow, units="in", res=res)
     par( mfrow=c(Nrow,Ncol), ... )
     for(p in 1:TmbData$n_p){
       if( isComplexTF==TRUE ){
