@@ -51,7 +51,7 @@ Please see examples folder for single-species and multi-species examples of how 
 Description of package
 =============
 ### Please cite if using the software
-* Thorson, J., S. Munch, and D. Swain. In press. Estimating partial regulation to bridge between neutral and niche theory in spatio-temporal community dynamics. Ecology. URL: http://onlinelibrary.wiley.com/doi/10.1002/ecy.1760/abstract?campaign=wolacceptedarticle
+* 2017. Thorson, J., Munch, S, and Swain, D.  Estimating partial regulation in community dynamics using spatio-temporal models. Ecology. 98(5): 1277-1289. DOI: 10.1002/ecy.1760. URL: http://onlinelibrary.wiley.com/doi/10.1002/ecy.1760/abstract
 
 
 
