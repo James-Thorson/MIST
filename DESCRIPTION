@@ -1,8 +1,8 @@
 Package: MIST
 Type: Package
 Title: Spatial vector autoregressive model
-Version: 1.0
-Date: 2015-09-03
+Version: 1.1.1
+Date: 2017-08-04
 Author: James Thorson
 Maintainer: James Thorson <James.Thorson@noaa.gov>
 Description: Package for estimating parameters of a spatial vector autoregressive model, used to estimate interactions among species via spatio-temporal modeling.
@@ -19,6 +19,6 @@ Depends:
 Suggests: 
     INLA,
     testthat
-License: GPL-2
-URL: http://github.com/James-Thorson/SpatialVAM
-BugReports: http://github.com/James-Thorson/SpatialVAM/issues
+License: GPL-3
+URL: http://github.com/James-Thorson/MIST
+BugReports: http://github.com/James-Thorson/MIST/issues
