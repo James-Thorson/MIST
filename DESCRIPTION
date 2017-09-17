@@ -18,7 +18,11 @@ Depends:
     R (>= 3.1.0),
 Suggests: 
     INLA,
-    testthat
+    testthat,
+    knitr,
+    rmarkdown,
+    R.rsp
 License: GPL-3
 URL: http://github.com/James-Thorson/MIST
 BugReports: http://github.com/James-Thorson/MIST/issues
+VignetteBuilder: R.rsp

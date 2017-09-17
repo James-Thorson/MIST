@@ -2,7 +2,7 @@
 title: Example script for MIST for spatio-temporal analysis of species interactions
   data
 author: "James Thorson"
-date: "January 25, 2017"
+date: "`r Sys.Date()`"
 output:
   pdf_document:
     fig_caption: yes
