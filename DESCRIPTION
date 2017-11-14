@@ -13,7 +13,12 @@ Imports:
     RANN,
     RandomFields,
     RandomFieldsUtils,
-    TMB  
+    TMB,
+    MatrixModels,  
+    ThorsonUtilities,
+    TMBhelper,
+    SpatialDFA,
+    SpatialDeltaGLMM
 Depends: 
     R (>= 3.1.0),
 Suggests: 
@@ -22,6 +27,11 @@ Suggests:
     knitr,
     rmarkdown,
     R.rsp
+Remotes:
+    nwfsc-assess/geostatistical_delta-GLMM,
+    james-thorson/spatial_DFA,
+    james-thorson/utilities,
+    kaskr/TMB_contrib_R/TMBhelper
 License: GPL-3
 URL: http://github.com/James-Thorson/MIST
 BugReports: http://github.com/James-Thorson/MIST/issues
