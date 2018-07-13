@@ -17,10 +17,10 @@ Imports:
     MatrixModels,  
     ThorsonUtilities,
     TMBhelper,
-    SpatialDFA,
-    SpatialDeltaGLMM
+    SpatialDFA
 Depends: 
     R (>= 3.1.0),
+    FishStatsUtils
 Suggests: 
     INLA,
     testthat,
@@ -28,7 +28,7 @@ Suggests:
     rmarkdown,
     R.rsp
 Remotes:
-    nwfsc-assess/geostatistical_delta-GLMM,
+    james-thorson/FishStatsUtils,
     james-thorson/spatial_DFA,
     james-thorson/utilities,
     kaskr/TMB_contrib_R/TMBhelper

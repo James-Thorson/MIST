@@ -154,14 +154,14 @@ pander::pandoc.table( tail(Data_Geostat), digits=3 )
 
 We also generate the extrapolation grid appropriate for a given region.  For new regions, we use `Region="Other"`.
 ```{r extrapolation_grid, message=FALSE, tidy=TRUE, linewidth=60}
-Extrapolation_List = SpatialDeltaGLMM::Prepare_Extrapolation_Data_Fn( Region=Region, strata.limits=strata.limits )
+Extrapolation_List = Prepare_Extrapolation_Data_Fn( Region=Region, strata.limits=strata.limits )
 ```
 
 ## Derived objects for spatio-temporal estimation
 
 And we finally generate the information used for conducting spatio-temporal parameter estimation, bundled in list `Spatial_List`
 ```{r spatial_information, message=FALSE, warning=FALSE, tidy=TRUE, linewidth=60}
-Spatial_List = SpatialDeltaGLMM::Spatial_Information_Fn( grid_size_km=100, n_x=n_x, Method="Mesh", Lon=Data_Geostat[,'Lon'], Lat=Data_Geostat[,'Lat'], Extrapolation_List=Extrapolation_List, randomseed=Kmeans_Config[["randomseed"]], nstart=Kmeans_Config[["nstart"]], iter.max=Kmeans_Config[["iter.max"]], DirPath=DateFile )
+Spatial_List = Spatial_Information_Fn( grid_size_km=100, n_x=n_x, Method="Mesh", Lon=Data_Geostat[,'Lon'], Lat=Data_Geostat[,'Lat'], Extrapolation_List=Extrapolation_List, randomseed=Kmeans_Config[["randomseed"]], nstart=Kmeans_Config[["nstart"]], iter.max=Kmeans_Config[["iter.max"]], DirPath=DateFile )
 # Add knots to Data_Geostat
 Data_Geostat = cbind( Data_Geostat, "knot_i"=Spatial_List$knot_i )
 ```
@@ -204,7 +204,7 @@ We first apply a set of standard model diagnostics to confirm that the model is 
 
 It is always good practice to conduct exploratory analysis of data.  Here, I visualize the spatial distribution of data.  Spatio-temporal models involve the assumption that the probability of sampling a given location is statistically independent of the probability distribution for the response at that location.  So if sampling "follows" changes in density, then the model is probably not appropriate!
 ```{r explore_data, results="hide", tidy=TRUE, message=FALSE, warning=FALSE}
-SpatialDeltaGLMM::Plot_data_and_knots(Extrapolation_List=Extrapolation_List, Spatial_List=Spatial_List, Data_Geostat=Data_Geostat, PlotDir=DateFile )
+Plot_data_and_knots(Extrapolation_List=Extrapolation_List, Spatial_List=Spatial_List, Data_Geostat=Data_Geostat, PlotDir=DateFile )
 ```
 ![Spatial extent and location of knots](MIST_output/Data_and_knots.png) 
 
@@ -234,9 +234,9 @@ We then run a set of pre-defined plots for visualizing results
 We can visualize many types of output from the model.  Here I only show predicted density, but other options are obtained via other integers passed to `plot_set` as described in `?PlotResultsOnMap_Fn`
 ```{r plot_density, message=FALSE, warning=FALSE, tidy=TRUE, linewidth=50}
 # Get region-specific settings for plots
-MapDetails_List = SpatialDeltaGLMM::MapDetails_Fn( "Region"=Region, "NN_Extrap"=Spatial_List$PolygonList$NN_Extrap, "Extrapolation_List"=Extrapolation_List )
+MapDetails_List = MapDetails_Fn( "Region"=Region, "NN_Extrap"=Spatial_List$PolygonList$NN_Extrap, "Extrapolation_List"=Extrapolation_List )
 # Plot maps representing density or other variables
-SpatialDeltaGLMM::PlotResultsOnMap_Fn(plot_set=c(3), MappingDetails=MapDetails_List[["MappingDetails"]], Report=Report, Sdreport=Opt$SD, PlotDF=MapDetails_List[["PlotDF"]], MapSizeRatio=MapDetails_List[["MapSizeRatio"]], Xlim=MapDetails_List[["Xlim"]], Ylim=MapDetails_List[["Ylim"]], FileName=DateFile, category_names=unique(DF$Sci), Year_Set=Year_Set, Rotate=MapDetails_List[["Rotate"]], Cex=MapDetails_List[["Cex"]], Legend=MapDetails_List[["Legend"]], zone=MapDetails_List[["Zone"]], mar=c(0,0,2,0), oma=c(3.5,3.5,0,0), cex=1.8)
+PlotResultsOnMap_Fn(plot_set=c(3), MappingDetails=MapDetails_List[["MappingDetails"]], Report=Report, Sdreport=Opt$SD, PlotDF=MapDetails_List[["PlotDF"]], MapSizeRatio=MapDetails_List[["MapSizeRatio"]], Xlim=MapDetails_List[["Xlim"]], Ylim=MapDetails_List[["Ylim"]], FileName=DateFile, category_names=unique(DF$Sci), Year_Set=Year_Set, Rotate=MapDetails_List[["Rotate"]], Cex=MapDetails_List[["Cex"]], Legend=MapDetails_List[["Legend"]], zone=MapDetails_List[["Zone"]], mar=c(0,0,2,0), oma=c(3.5,3.5,0,0), cex=1.8)
 ```
 ![Density maps for each year for arrowtooth flounder](MIST_output/Dens--Atheresthes_stomias.png) 
 
@@ -246,7 +246,7 @@ SpatialDeltaGLMM::PlotResultsOnMap_Fn(plot_set=c(3), MappingDetails=MapDetails_L
 
 The index of abundance is generally most useful for stock assessment models.
 ```{r plot_index, message=FALSE, tidy=TRUE, linewidth=50, results="asis"}
-Index = SpatialDeltaGLMM::PlotIndex_Fn( DirName=DateFile, TmbData=TmbData, Sdreport=Opt$SD, Year_Set=min(Data_Geostat[,'Year']):max(Data_Geostat[,'Year']), Years2Include=which(min(Data_Geostat[,'Year']):max(Data_Geostat[,'Year'])%in%sort(unique(Data_Geostat[,'Year']))), strata_names=names(strata.limits)[1], category_names=levels(DF[,'Sci']), use_biascorr=TRUE )
+Index = PlotIndex_Fn( DirName=DateFile, TmbData=TmbData, Sdreport=Opt$SD, Year_Set=min(Data_Geostat[,'Year']):max(Data_Geostat[,'Year']), Years2Include=which(min(Data_Geostat[,'Year']):max(Data_Geostat[,'Year'])%in%sort(unique(Data_Geostat[,'Year']))), strata_names=names(strata.limits)[1], category_names=levels(DF[,'Sci']), use_biascorr=TRUE )
 pander::pandoc.table( Index$Table[,c("Category","Year","Estimate_metric_tons","SD_mt")] ) 
 ```
 ![Index of abundance plus/minus 1 standard error](MIST_output/Index.png) 
@@ -255,6 +255,6 @@ pander::pandoc.table( Index$Table[,c("Category","Year","Estimate_metric_tons","S
 
 We can detect shifts in distribution or range expansion/contraction.  
 ```{r plot_range, message=FALSE, tidy=TRUE, linewidth=50}
-SpatialDeltaGLMM::Plot_range_shifts(Report=Report, TmbData=TmbData, Sdreport=Opt$SD, Znames=colnames(TmbData$Z_xm), PlotDir=DateFile, category_names=unique(DF$Sci), Year_Set=Year_Set)
+Plot_range_shifts(Report=Report, TmbData=TmbData, Sdreport=Opt$SD, Znames=colnames(TmbData$Z_xm), PlotDir=DateFile, category_names=unique(DF$Sci), Year_Set=Year_Set)
 ```
 
